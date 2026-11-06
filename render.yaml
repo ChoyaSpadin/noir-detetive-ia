@@ -36,3 +36,14 @@ services:
     envVars:
       - key: VITE_API_URL # endereço público do servidor (lido no build do site)
         value: https://noir-detetive-ia-api.onrender.com
+    # Cache no navegador: arquivos com hash no nome nunca mudam; modelos 3D mudam raramente.
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /models/*
+        name: Cache-Control
+        value: public, max-age=2592000
+      - path: /*.png
+        name: Cache-Control
+        value: public, max-age=604800

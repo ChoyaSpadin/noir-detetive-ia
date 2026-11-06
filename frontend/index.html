@@ -4,8 +4,30 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#0b0d12" />
-    <link rel="manifest" href="/manifest.webmanifest" />
     <title>Noir: Detetive IA</title>
+    <meta
+      name="description"
+      content="Jogo de mistério noir em 3D: interrogue suspeitos movidos por IA, por texto ou voz, e descubra o culpado."
+    />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- Prévia ao compartilhar o link (LinkedIn, WhatsApp, X) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Noir: Detetive IA" />
+    <meta
+      property="og:description"
+      content="Cada suspeito é um agente de IA com segredos e um álibi. Interrogue por texto ou voz e encontre o culpado."
+    />
+    <meta property="og:url" content="https://noir-detetive-ia.onrender.com/" />
+    <meta property="og:image" content="https://noir-detetive-ia.onrender.com/og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Abre a conexão com o servidor do jogo enquanto o site carrega -->
+    <link rel="preconnect" href="https://noir-detetive-ia-api.onrender.com" crossorigin />
   </head>
   <body>
     <div id="root"></div>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#0b0d12"/>
+  <!-- chapéu fedora -->
+  <path d="M10 38c6 4 38 4 44 0-4 4-40 4-44 0z" fill="#ffb257"/>
+  <path d="M18 37c0-9 4-17 14-17s14 8 14 17c-6 2-22 2-28 0z" fill="#e8e2d4"/>
+  <path d="M18.6 31c7 2.2 19.8 2.2 26.8 0l.5 3c-7 2.3-20.8 2.3-27.8 0z" fill="#d6453d"/>
+  <path d="M32 21c-3 0-4 4-4 6 2-1 6-1 8 0 0-2-1-6-4-6z" fill="#0b0d12" opacity=".35"/>
+</svg>
