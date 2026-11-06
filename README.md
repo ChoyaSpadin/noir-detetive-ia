@@ -1,57 +1,136 @@
-# Noir: AI Detective
+<div align="center">
 
-A 3D, mobile-first mystery game where every suspect is an LLM agent. Interrogate them, catch the lie, accuse the killer.
+# 🕵️ Noir: AI Detective
 
-**Highlights:** animated cinematic intro driven by case data (shots + subtitles + browser TTS), rigged CC0 characters dressed at load time, emotion-driven body language, mobile-first.
+**A 3D, mobile-first mystery game where every suspect is an LLM agent.**<br>
+Interrogate them by text or voice, catch the lie, accuse the killer.
 
-**Stack:** React Three Fiber · TypeScript · Vite (frontend) — Python · FastAPI · Pydantic (backend) — Gemini / Groq free tiers with automatic fallback.
+[**▶ Play it live**](https://noir-detetive-ia.onrender.com) &nbsp;·&nbsp; [How it works](#how-it-works) &nbsp;·&nbsp; [Architecture](#architecture) &nbsp;·&nbsp; [Run locally](#run-locally)
 
-## How the agents work
-- **Case generator:** an LLM writes the hidden "truth" of a new case (culprit, timeline, alibis, clues, secrets). It is validated with Pydantic (exactly one culprit, enough clues held by innocents). Invalid output falls back to a hand-written seed case.
-- **Suspect agents:** each suspect only receives its own knowledge and secrets, never the full truth or other suspects' secrets. The culprit lies by design.
-- **Guardrails:** confession filter for the culprit, in-character refusal of prompt injection, a question budget per case, and the truth never leaves the server.
-- **Offline mode:** without API keys, a rule-based engine plays the seed case, so the game and the tests run for free with no network.
+![React](https://img.shields.io/badge/React_19-20232A?logo=react&logoColor=61DAFB)
+![Three.js](https://img.shields.io/badge/React_Three_Fiber-000000?logo=threedotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Python](https://img.shields.io/badge/Python_3.12-3776AB?logo=python&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-33_passing-2ea44f)
+![Cost](https://img.shields.io/badge/hosting-%240%2Fmonth-ffb257)
 
-## Voices
-- Intro narration: Gemini TTS, one multi-speaker call per case, split per line with Groq Whisper word timestamps.
-- Foreign suspects: local [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) (Apache 2.0). Foreign voices reading Portuguese give a natural accent; English-only suspects must be questioned in English.
-- Download the model to `backend/models/`: `kokoro-v1.0.onnx` and `voices-v1.0.bin` from [kokoro-onnx releases](https://github.com/thewh1teagle/kokoro-onnx/releases).
+<img src="docs/gameplay.gif" alt="Gameplay: case archive, cinematic intro, interrogation in Portuguese and in English" width="720">
+
+<sub>The game is in Brazilian Portuguese. One suspect only speaks English, so you have to switch languages to question him.</sub>
+
+</div>
+
+---
+
+## What makes it interesting
+
+- **Suspects are isolated agents.** Each one gets only its own memories, alibi and secrets, never the full truth or the other suspects' secrets. The culprit lies by design, and a server-side guard blocks confessions.
+- **Real-time answers.** The reply streams over SSE: text shows up in ~0.5 s and the suspect's voice starts in ~2 s. Each sentence is typed in sync with its own audio.
+- **Voice in, voice out.** Push-to-talk questions are transcribed by Whisper in the language the player picks (PT/EN). Answers are voiced by Kokoro-82M, with foreign accents and an English-only suspect.
+- **Cinematic intro from data.** Each case has a scripted prologue (camera shots, subtitles, narrator and police officer voices) generated together with the case.
+- **Built for $0.** Everything runs on free tiers with no credit card, and the game degrades gracefully when a quota runs out (see [Free-tier engineering](#free-tier-engineering)).
+
+| Case archive | Cinematic intro | Interrogation |
+|---|---|---|
+| <img src="docs/archive.jpg" width="260"> | <img src="docs/intro.jpg" width="260"> | <img src="docs/interrogation.jpg" width="260"> |
+
+## How it works
+
+1. **Case generation.** An LLM writes the hidden truth of a new case: culprit, timeline, alibis, clues, secrets and a spoiler-free prologue. Pydantic validates it (exactly one culprit, innocents must hold at least two clues that contradict the culprit's alibi, the prologue can't leak the answer). Invalid output is retried or replaced by a hand-written case.
+2. **Case archive.** A script pre-generates validated cases and pre-narrates their intros to MP3, so the archive opens instantly and costs no AI quota.
+3. **Interrogation.** Each question goes to that suspect's own agent with its private prompt and conversation history. The answer is streamed, split into speakable chunks and voiced chunk by chunk.
+4. **Guardrails.** Confession filter for the culprit, in-character refusal of prompt injection, a question budget per case, and the truth never leaves the server.
+5. **Accusation.** You pick the culprit and get the full solution.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Browser
+        UI["React + React Three Fiber<br/>case archive · 3D scene · chat · mic"]
+    end
+    subgraph Render["Render (free)"]
+        Site["Static site"]
+        API["FastAPI game server<br/>cases · agents · guards · SSE"]
+    end
+    subgraph Modal["Modal (Starter)"]
+        Voice["Kokoro-82M voices<br/>scales to zero"]
+    end
+    Groq["Groq<br/>gpt-oss-120b · Qwen · Whisper"]
+    Gemini["Gemini<br/>text + multi-speaker TTS"]
+
+    UI --> Site
+    UI -- "questions (SSE stream)" --> API
+    UI -- "audio (push-to-talk)" --> API
+    API --> Groq
+    API --> Gemini
+    API -- "text chunks" --> Voice
+```
+
+**Stack:** React 19, TypeScript, Vite, React Three Fiber, drei, postprocessing · Python 3.12, FastAPI, Pydantic v2, httpx · Groq, Gemini, Kokoro ONNX, Whisper.
+
+## Free-tier engineering
+
+Most of the interesting work came from making this fast and reliable without paying for anything:
+
+| Constraint | What the game does |
+|---|---|
+| Groq free tier: ~8k tokens/min per model | On a 429, switches to the next model (gpt-oss-120b → Qwen 3.8 → gpt-oss-20b), each with its own quota, before falling back to Gemini or a rule-based offline mode |
+| Gemini TTS: 10 calls/day | One multi-speaker call per intro, split per line with Whisper word timestamps; library intros are pre-rendered MP3; Kokoro covers the rest |
+| Free API host has 512 MB and sleeps | The voice model runs on a separate scale-to-zero service; the site wakes the API on load while the player browses the archive |
+| Voice budget is $1/month | Max one container, 5 min idle shutdown, shared-key auth. If the voice service fails, answers continue as text only |
+| CPU speech synthesis is slow | Answers are chunked with growing sizes (28 → 42 → 75 → 110 chars) so the first sentence is ready in ~1.5 s and each next chunk renders while the previous one plays |
+| Whisper guesses the wrong language on short clips | The player picks PT/EN; forcing the wrong language would silently translate the question |
 
 ## Run locally
+
 ```bash
 # backend
-cd backend && pip install -r requirements.txt
-cp .env.example .env   # optional: add GEMINI_API_KEY and/or GROQ_API_KEY
+cd backend
+pip install -r requirements.txt
+cp .env.example .env        # optional: GEMINI_API_KEY and/or GROQ_API_KEY
 python -m uvicorn app.main:app --port 8000
 
 # frontend (another terminal)
-cd frontend && npm install && npm run dev
+cd frontend
+npm install
+npm run dev
 ```
-Open http://localhost:5173. On your phone, use the "Network" URL printed by Vite (same Wi-Fi).
+
+Open http://localhost:5173. Without API keys the game runs in offline mode with the hand-written case.
+
+For local suspect voices, download `kokoro-v1.0.onnx` and `voices-v1.0.bin` from the [kokoro-onnx releases](https://github.com/thewh1teagle/kokoro-onnx/releases) into `backend/models/`.
 
 ## Tests
+
 ```bash
 cd backend && python -m pytest -q
 ```
-Covers case validation, truth leakage, prompt isolation between suspects, question limits, the confession guard and the accusation flow.
 
-## Assets
-Characters and animations: [Quaternius](https://quaternius.com) Universal Base Characters + Universal Animation Library (CC0). `frontend/scripts/build-assets.mjs` trims and compresses them (188 MB → 1.5 MB: WebP textures, meshopt, only used clips).
+33 tests cover case validation, truth leakage, prompt isolation between suspects, the confession guard, question limits, streaming, model fallback on rate limits, voice-service failure, transcription input checks and the accusation flow.
 
-## Deploy (free tiers, no credit card)
-The game is split so it keeps working when the voice budget runs out:
+## Deploy
 
-| Piece | Where | Notes |
+| Piece | Where | Config |
 |---|---|---|
-| Static site | any static host (Vite build) | Ships the case archive (public data only), so the menu opens instantly |
-| Game API (`backend/`) | Render free (`render.yaml`, 512 MB) | No voice model; sleeps after 15 min, the site wakes it on load |
-| Suspect voices (Kokoro) | Modal Starter (`deploy/modal_voice.py`) | Scales to zero, max 1 container, protected by a shared key. If credits run out, answers fall back to text-only |
+| Static site + game API | Render free tier | [`render.yaml`](render.yaml) blueprint |
+| Suspect voices | Modal Starter | [`deploy/modal_voice.py`](deploy/modal_voice.py) |
+| Case archive | Built offline | `python backend/scripts/build_library.py --novos 5` |
 
-Case library: `python backend/scripts/build_library.py --novos 5` generates validated cases and pre-narrates their intros to MP3 (`backend/app/library/`), so playing a library case costs no TTS quota.
+API keys live only in the hosting dashboards, never in the repository.
+
+## Credits
+
+- Characters and animations: [Quaternius](https://quaternius.com) Universal Base Characters + Universal Animation Library (CC0). `frontend/scripts/build-assets.mjs` trims and compresses them from 188 MB to 1.5 MB.
+- Voices: [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) (Apache 2.0) and Gemini TTS.
 
 ## Roadmap
-1. ~~MVP: one scene, 3 suspects, chat, accusation~~
-2. ~~Visuals: rigged/animated characters, animated intro, camera cuts~~ (next: clothing with real volume)
-3. ~~Voice interrogation (push-to-talk, Whisper, PT/EN)~~
-4. Quality: consistency evals for suspects and generated cases
-5. Deploy and showcase
+
+- [x] MVP: 3 suspects, chat, accusation
+- [x] Rigged, animated characters and cinematic intro
+- [x] Streaming answers with synced voice
+- [x] Voice questions (push-to-talk, PT/EN)
+- [x] Case archive and free-tier deploy
+- [ ] Automated evals for suspect consistency and case solvability
+- [ ] More cases and clothing with real volume
