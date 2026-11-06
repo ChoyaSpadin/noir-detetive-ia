@@ -1,0 +1,10 @@
+{
+  "name": "Noir: Detetive IA",
+  "short_name": "Noir",
+  "description": "Jogo de mistério noir: interrogue suspeitos com IA e descubra o culpado.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0d12",
+  "theme_color": "#0b0d12",
+  "orientation": "portrait"
+}

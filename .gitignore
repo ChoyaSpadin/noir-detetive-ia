@@ -1,0 +1,13 @@
+node_modules/
+dist/
+__pycache__/
+.pytest_cache/
+.env
+*.pyc
+.tts-cache/
+.tts-test/
+backend/models/
+amostras-voz/
+
+# Configuração local do Claude Code
+.claude/
