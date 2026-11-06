@@ -1,0 +1,172 @@
+{
+  "title": "O Sussurro dos Cabos",
+  "setting": "Porto de Santos, 1962. A bruma marítima envolve o cargueiro Aurora, ancorado nas águas escuras do porto, enquanto o farol distante ainda pulsa.",
+  "intro": "Às 02h30, o capitão Eduardo Ramos, dono do Aurora, foi encontrado morto na sala de máquinas, com o arame de um cabo elétrico quebrado na mão. O gás propano no tanque parecia estar em excesso. Três tripulantes estavam a bordo e tinham motivos. O vento cortou o porto e ninguém deixou a nave até que você resolva.",
+  "victim": {
+    "name": "Eduardo Ramos",
+    "description": "Capitão de 48 anos, voz grave, sempre com o chapéu de aba curta. Autoridade nas tripulações, mas impopular entre os jovens marinheiros."
+  },
+  "culprit_id": "mike",
+  "method": "O culpado cortou o fio de segurança do tanque de propano às 02h20, permitindo que o gás escapasse e explodisse às 02h30.",
+  "motive": "Mike estava cansado da disciplina severa de Ramos e desejava o cargo de primeiro oficial.",
+  "timeline": [
+    "02h00: Pedro, o engenheiro, revisa o sistema de ventilação.",
+    "02h10: Mike, o técnico, faz manutenção no tanque de propano.",
+    "02h15: Ramos entra na sala de máquinas para verificar os níveis.",
+    "02h20: Mike corta o fio de segurança.",
+    "02h25: Pedro observa uma luz vermelha piscando.",
+    "02h30: Ramos é encontrado morto na sala de máquinas.",
+    "02h35: Pedro entra na sala e acende a luz de emergência."
+  ],
+  "solution": "Mike cutou o fio de segurança do tanque, permitindo a explosão. Pedro viu o fio cortado, mas não sabia quem o fez. O capitão dizia estar na sala de máquinas, mas Pedro viu luz vermelha piscando em 02h25. O arame quebrado era do cabo de segurança que Mike tinha em mãos. A prova está na cor do fio: vermelho escuro, diferente do padrão verde da companhia.",
+  "suspects": [
+    {
+      "id": "pedro",
+      "name": "Pedro Silva",
+      "role": "Engenheiro de bordo",
+      "description": "Roupas de trabalho, barba curta, olhos atentos. Carrega um martelo em cada mão.",
+      "look": {
+        "color": "#2c3e50",
+        "accent": "#e67e22",
+        "hat": false,
+        "height": 1.0,
+        "gender": "masculino"
+      },
+      "personality": "Metódico, leal, mas desconfiado do capitão.",
+      "relationship": "Colaborador direto de Ramos.",
+      "alibi_claim": "Estava na sala de máquinas revisando o sistema de ventilação das 02h00 às 02h45.",
+      "alibi_truth": "Estava mesmo na sala de máquinas das 02h00 às 02h45.",
+      "knowledge": [
+        "No período das 02h15, o capitão entrou na sala, mas Pedro o viu sair antes da explosão.",
+        "Pedro observou uma luz vermelha piscando em 02h25.",
+        "O fio de segurança era vermelho escuro, não verde, e estava cortado."
+      ],
+      "secrets": [
+        "Tem um contrato secreto com a companhia aérea para sair do navio."
+      ],
+      "is_culprit": false,
+      "nationality": null,
+      "speaks_portuguese": true
+    },
+    {
+      "id": "mike",
+      "name": "Mike Thompson",
+      "role": "Técnico de bordo",
+      "description": "Cabelos escuros, sorriso maroto, veste jaleco azul escuro. O senhor dos cabos.",
+      "look": {
+        "color": "#1f2d3d",
+        "accent": "#7f8c8d",
+        "hat": false,
+        "height": 0.95,
+        "gender": "masculino"
+      },
+      "personality": "Sorriso fácil, mas atento aos detalhes.",
+      "relationship": "Trabalha na nave há cinco anos, sempre sob o olhar de Ramos.",
+      "alibi_claim": "Estava no corredor, consertando cabos elétricos das 02h10 às 02h35.",
+      "alibi_truth": "Saiu do corredor às 02h20, cortou o fio de segurança, voltou às 02h25.",
+      "knowledge": [
+        "O fio de segurança do tanque era vermelho escuro, diferente do padrão verde.",
+        "O capitão estava na sala de máquinas, mas não viu quem cortou o fio.",
+        "O gás propano estava em excesso, indicando fuga."
+      ],
+      "secrets": [
+        "Corta fios em outras embarcações, mas nunca foi pego.",
+        "Ele tem um passaporte americano e não fala português, mas fala inglês."
+      ],
+      "is_culprit": true,
+      "nationality": "americano",
+      "speaks_portuguese": true
+    },
+    {
+      "id": "joana",
+      "name": "Joana Costa",
+      "role": "Tripulante de Quartel",
+      "description": "Cabelos presos, uniforme azul marinho, olhar nervoso. Sempre pronta a ajudar.",
+      "look": {
+        "color": "#273746",
+        "accent": "#bdc3c7",
+        "hat": false,
+        "height": 0.92,
+        "gender": "feminino"
+      },
+      "personality": "Quietude, mas observadora. Fala pouco, mas percebe mais que diz.",
+      "relationship": "Ajudava o capitão com documentos e relatórios.",
+      "alibi_claim": "Arrumava a cabine do quarto 12 e foi ao banheiro quando encontrou o corpo, às 02h35.",
+      "alibi_truth": "Arrumava a cabine do quarto 12 e foi ao banheiro quando encontrou o corpo, às 02h35.",
+      "knowledge": [
+        "Viu o capitão entrar na sala de máquinas às 02h15.",
+        "Sentiu um cheiro forte de gás antes da explosão.",
+        "Não viu quem cortou o fio, mas sabe que o fio era vermelho escuro."
+      ],
+      "secrets": [
+        "Usou o código de segurança de um colega sem permissão."
+      ],
+      "is_culprit": false,
+      "nationality": null,
+      "speaks_portuguese": true
+    }
+  ],
+  "officer_name": "Det. Carlos Nogueira",
+  "prologue": [
+    {
+      "shot": "establishing",
+      "speaker": "narrador",
+      "text": "Porto de Santos, 1962. O vento frio corta a noite.",
+      "suspect_id": null
+    },
+    {
+      "shot": "crime",
+      "speaker": "narrador",
+      "text": "Na sala de máquinas do Aurora, a relva de ferro se rala.",
+      "suspect_id": null
+    },
+    {
+      "shot": "crime",
+      "speaker": "narrador",
+      "text": "Às 02h30, o capitão Ramos cai no chão, a morte em silêncio.",
+      "suspect_id": null
+    },
+    {
+      "shot": "arrival",
+      "speaker": "narrador",
+      "text": "Você chega quando o rádio ainda bate a última mensagem do porto.",
+      "suspect_id": null
+    },
+    {
+      "shot": "officer",
+      "speaker": "policial",
+      "text": "Detetive, o capitão está morto. O tanque de propano parece ter fugido.",
+      "suspect_id": null
+    },
+    {
+      "shot": "officer",
+      "speaker": "policial",
+      "text": "Seis horas de silêncio. Três suspeitos, um segredo.",
+      "suspect_id": null
+    },
+    {
+      "shot": "suspect",
+      "speaker": "policial",
+      "text": "Pedro Silva, engenheiro. Estava na sala de máquinas, verificando.",
+      "suspect_id": "pedro"
+    },
+    {
+      "shot": "suspect",
+      "speaker": "policial",
+      "text": "Mike Thompson, técnico. Diz que estava no corredor, consertando cabos.",
+      "suspect_id": "mike"
+    },
+    {
+      "shot": "suspect",
+      "speaker": "policial",
+      "text": "Joana Costa, tripulante de quartel. Foi a primeira a encontrar o corpo.",
+      "suspect_id": "joana"
+    },
+    {
+      "shot": "officer",
+      "speaker": "policial",
+      "text": "Um deles está mentindo. Cheque os fios.",
+      "suspect_id": null
+    }
+  ]
+}

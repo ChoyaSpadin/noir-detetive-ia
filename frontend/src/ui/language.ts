@@ -12,7 +12,7 @@ export const FLAGS: Record<string, string> = {
 export type SpeechLang = 'pt' | 'en'
 
 /** Selo curto de estrangeiro (null para brasileiro). Ex.: "🇮🇹 Italiano · pouco português". */
-export function foreignBadge(s: PublicSuspect): string | null {
+export function foreignBadge(s: Pick<PublicSuspect, 'nationality' | 'speaks_portuguese'> | { nationality?: string | null; speaks_portuguese?: boolean }): string | null {
   if (!s.nationality) return null
   const flag = FLAGS[s.nationality] ?? '🌍'
   const nat = s.nationality[0].toUpperCase() + s.nationality.slice(1)

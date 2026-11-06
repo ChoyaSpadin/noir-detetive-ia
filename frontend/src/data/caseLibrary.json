@@ -1,0 +1,110 @@
+[
+  {
+    "id": "a-ultima-sombra-no-trem-da-baia",
+    "title": "A Última Sombra no Trem da Baía",
+    "setting": "Trem de luxo Interlagos, 1957. Uma noite enevoada cruzando o litoral paulista do Rio de Janeiro.",
+    "intro": "Às 23h15, o capitão Fernando Valente foi encontrado mortificado na cabine de comando, com um martelo de ouro na mão. A fumaça densa da locomotiva escondia o som do impacto. Três passageiros estavam a bordo e têm motivos. O trem ainda segue em direção ao Rio. Descubra quem o matou.",
+    "victim": "Capitão Fernando Valente",
+    "suspects": [
+      {
+        "name": "Santiago Lemos",
+        "role": "Ex-capitão da companhia",
+        "nationality": null,
+        "speaks_portuguese": true
+      },
+      {
+        "name": "Maria Clara Nunes",
+        "role": "Passageira de classe alta",
+        "nationality": null,
+        "speaks_portuguese": true
+      },
+      {
+        "name": "Hugo Valença",
+        "role": "Engenheiro do trem",
+        "nationality": null,
+        "speaks_portuguese": true
+      }
+    ]
+  },
+  {
+    "id": "hotel-aurora",
+    "title": "A Última Nota no Hotel Aurora",
+    "setting": "Rio de Janeiro, 1952. Uma noite de tempestade no Hotel Aurora, em Copacabana.",
+    "intro": "Às 23h40, Vicente Albuquerque, dono do Hotel Aurora, foi encontrado morto no próprio escritório, com um copo de uísque pela metade. O médico sentiu cheiro de amêndoas: cianeto. Três pessoas estavam no hotel e tinham motivo. A chuva fechou as ruas. Ninguém sai até você descobrir quem foi.",
+    "victim": "Vicente Albuquerque",
+    "suspects": [
+      {
+        "name": "Helena Duarte",
+        "role": "Cantora do clube",
+        "nationality": null,
+        "speaks_portuguese": true
+      },
+      {
+        "name": "Otávio Reis",
+        "role": "Sócio e contador",
+        "nationality": null,
+        "speaks_portuguese": true
+      },
+      {
+        "name": "Rosa Lima",
+        "role": "Camareira",
+        "nationality": null,
+        "speaks_portuguese": true
+      }
+    ]
+  },
+  {
+    "id": "o-sussurro-dos-cabos",
+    "title": "O Sussurro dos Cabos",
+    "setting": "Porto de Santos, 1962. A bruma marítima envolve o cargueiro Aurora, ancorado nas águas escuras do porto, enquanto o farol distante ainda pulsa.",
+    "intro": "Às 02h30, o capitão Eduardo Ramos, dono do Aurora, foi encontrado morto na sala de máquinas, com o arame de um cabo elétrico quebrado na mão. O gás propano no tanque parecia estar em excesso. Três tripulantes estavam a bordo e tinham motivos. O vento cortou o porto e ninguém deixou a nave até que você resolva.",
+    "victim": "Eduardo Ramos",
+    "suspects": [
+      {
+        "name": "Pedro Silva",
+        "role": "Engenheiro de bordo",
+        "nationality": null,
+        "speaks_portuguese": true
+      },
+      {
+        "name": "Mike Thompson",
+        "role": "Técnico de bordo",
+        "nationality": "americano",
+        "speaks_portuguese": true
+      },
+      {
+        "name": "Joana Costa",
+        "role": "Tripulante de Quartel",
+        "nationality": null,
+        "speaks_portuguese": true
+      }
+    ]
+  },
+  {
+    "id": "som-morto-na-vela",
+    "title": "Som Morto na Vela",
+    "setting": "Porto Alegre, 1947. A rádio AM Rádio Vela, palco de um programa ao vivo, onde a voz da cidade escapa nos ventos frios da manhã.",
+    "intro": "Às 06h15, o apresentador de \"A Vela Matutina\", Eduardo Rocha, foi encontrado morto no estúdio. Um microfone caiu no chão, espalhando confusão. A polícia está aqui para descobrir quem se aproveitou de um cenário de som e silêncio.",
+    "victim": "Eduardo Rocha",
+    "suspects": [
+      {
+        "name": "Harris Greene",
+        "role": "Produtor",
+        "nationality": null,
+        "speaks_portuguese": true
+      },
+      {
+        "name": "Horácio Pimentel",
+        "role": "Operador de áudio",
+        "nationality": null,
+        "speaks_portuguese": true
+      },
+      {
+        "name": "John Carter",
+        "role": "Convidado especial",
+        "nationality": "americano",
+        "speaks_portuguese": false
+      }
+    ]
+  }
+]

@@ -1,3 +1,4 @@
+import { API_BASE } from '../api'
 // Fila de fala do suspeito: toca os trechos em ordem e "digita" o texto de cada um
 // durante a voz dele. Sem voz (mudo ou erro), o texto aparece no ritmo de leitura.
 
@@ -45,7 +46,7 @@ export class SpeechQueue {
     if (url && getVolume() > 0) {
       el = new Audio()
       el.preload = 'auto' // já começa a baixar (o backend gera em ordem)
-      el.src = `${import.meta.env.VITE_API_URL ?? ''}${url}`
+      el.src = `${API_BASE}${url}`
     }
     this.all = this.all ? `${this.all} ${text}` : text
     this.items.push({ text, el })

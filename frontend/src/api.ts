@@ -64,7 +64,15 @@ export interface AccuseResponse {
   explanation: string
 }
 
-const BASE = import.meta.env.VITE_API_URL ?? ''
+/** Endereço do servidor. No Render vem só o host (ex.: noir-api.onrender.com): vira https://host. */
+function apiBase(): string {
+  const raw = (import.meta.env.VITE_API_URL ?? '').trim().replace(/\/$/, '')
+  if (!raw) return ''
+  return /^https?:\/\//.test(raw) ? raw : `https://${raw}`
+}
+
+export const API_BASE = apiBase()
+const BASE = API_BASE
 
 async function post<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
@@ -150,7 +158,17 @@ async function transcribe(caseId: string, audio: Blob, language: 'pt' | 'en'): P
 export const api = {
   interrogateStream,
   transcribe,
-  newCase: () => post<PublicCase>('/api/cases', {}),
+  newCase: (libraryId?: string | null) =>
+    post<PublicCase>('/api/cases', libraryId ? { library_id: libraryId } : {}),
+  /** true quando o servidor responde (no ar, o servidor grátis pode estar acordando). */
+  health: async (): Promise<boolean> => {
+    try {
+      const r = await fetch(`${BASE}/api/health`, { cache: 'no-store' })
+      return r.ok
+    } catch {
+      return false
+    }
+  },
   interrogate: (caseId: string, suspectId: string, question: string) =>
     post<InterrogateResponse>(`/api/cases/${caseId}/interrogate`, {
       suspect_id: suspectId,

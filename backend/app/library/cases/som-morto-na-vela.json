@@ -1,0 +1,178 @@
+{
+  "title": "Som Morto na Vela",
+  "setting": "Porto Alegre, 1947. A rádio AM Rádio Vela, palco de um programa ao vivo, onde a voz da cidade escapa nos ventos frios da manhã.",
+  "intro": "Às 06h15, o apresentador de \"A Vela Matutina\", Eduardo Rocha, foi encontrado morto no estúdio. Um microfone caiu no chão, espalhando confusão. A polícia está aqui para descobrir quem se aproveitou de um cenário de som e silêncio.",
+  "victim": {
+    "name": "Eduardo Rocha",
+    "description": "Apresentador carismático, 38 anos, conhecido por sua ironia afiada e seu café forte."
+  },
+  "culprit_id": "harris",
+  "method": "Eduardo foi envenenado com uma dose de ricina no café que ele serviu no ar.",
+  "motive": "Harris, produtor de shows, estava em crise financeira e queria que Eduardo deixasse o programa para dar espaço a outro talento.",
+  "timeline": [
+    "05h45: Eduardo começa o programa, cumprimenta o público.",
+    "06h00: Harris entra na sala, pede um café.",
+    "06h10: Eduardo oferece café a Harris e a todos.",
+    "06h15: Eduardo pede para interromper o programa e fica na sala de controle.",
+    "06h20: Harris sai do estúdio.",
+    "06h25: Eduardo volta, reclama do rádio quebrado e fica em silêncio.",
+    "06h30: Eduardo sente náuseas e desmaia.",
+    "06h35: Horácio, o operador, chama a polícia."
+  ],
+  "solution": "Harris, produtor, é culpado. Ele adicionou ricina ao café de Eduardo e, ao sair, deixou o microfone cair, criando a impressão de acidente. Eduardo reclamava do rádio quebrado, mas Horácio, que estava no estúdio, viu Harris sair antes do desmaio. O microfone, de fato, caiu, mas não foi a causa da morte. A prova está no pó de ricina encontrado no copo de café.",
+  "suspects": [
+    {
+      "id": "harris",
+      "name": "Harris Greene",
+      "role": "Produtor",
+      "description": "Traje preto, óculos de armação grossa, olhar calculista.",
+      "look": {
+        "color": "#2c2c2c",
+        "accent": "#8b0000",
+        "hat": false,
+        "height": 1.02,
+        "gender": "masculino"
+      },
+      "personality": "Ponto de vista prático, mas sempre procurando uma saída rápida.",
+      "relationship": "Associa o produtor ao público, mas nunca o faz aparecer no ar.",
+      "alibi_claim": "Ficou na sala de controle o dia todo, monitorando o som.",
+      "alibi_truth": "Saiu do estúdio às 06h20 para pegar a fatura de um cliente.",
+      "knowledge": [
+        "Horácio, o operador, viu Harris sair antes do desmaio.",
+        "O café que Eduardo ofereceu foi preparado pelo próprio Harris.",
+        "Eduardo estava em desacordo com a equipe sobre a qualidade do rádio."
+      ],
+      "secrets": [
+        "Sofria de dívidas, estava disposto a tudo para salvar a estação.",
+        "O microfone caiu quando ele entrou no estúdio.",
+        "Ele tinha um contrato secreto com outra rádio."
+      ],
+      "is_culprit": true,
+      "nationality": null,
+      "speaks_portuguese": true
+    },
+    {
+      "id": "horacio",
+      "name": "Horácio Pimentel",
+      "role": "Operador de áudio",
+      "description": "Cabelo desgrenhado, sorriso nervoso, sempre com a mão na mesa.",
+      "look": {
+        "color": "#1a1a1a",
+        "accent": "#708090",
+        "hat": false,
+        "height": 0.95,
+        "gender": "masculino"
+      },
+      "personality": "Calmo, observador, mas guarda segredos sobre o estúdio.",
+      "relationship": "Conhece Eduardo desde o início da carreira.",
+      "alibi_claim": "Estava ajustando os fones de ouvido e trabalhando no microfone.",
+      "alibi_truth": "Estava ajustando os fones de ouvido e não sabia de nada.",
+      "knowledge": [
+        "O microfone caiu, mas não era a causa da morte.",
+        "Horácio viu Harris sair antes do desmaio.",
+        "Eduardo reclamava do rádio quebrado antes de desmaiar."
+      ],
+      "secrets": [
+        "Tinha uma dívida com a estação e se sentia culpado.",
+        "Escondia um microfone falso na caixa de som.",
+        "Já tentou mudar o horário do programa sem avisar."
+      ],
+      "is_culprit": false,
+      "nationality": null,
+      "speaks_portuguese": true
+    },
+    {
+      "id": "john",
+      "name": "John Carter",
+      "role": "Convidado especial",
+      "description": "Traje cinza, barba bem aparada, fala em inglês.",
+      "look": {
+        "color": "#0d0d0d",
+        "accent": "#4b0082",
+        "hat": false,
+        "height": 1.0,
+        "gender": "masculino"
+      },
+      "personality": "Exato, pontual, fala pouco em português.",
+      "relationship": "Visitante americano para apresentar um novo programa.",
+      "alibi_claim": "Ficou no palco conversando com Eduardo, depois saiu para o camarão.",
+      "alibi_truth": "Ficou no palco, mas saiu às 06h12 antes de Eduardo desmaiar.",
+      "knowledge": [
+        "O café foi preparado no quarto de cozinha do estúdio.",
+        "Horácio viu John sair antes das 06h15.",
+        "John estava cansado e queria terminar cedo."
+      ],
+      "secrets": [
+        "Não conhece a língua portuguesa, então não percebeu a gravidade do envenenamento.",
+        "Tem um contrato de produção na rádio, mas não sabe quem vai se beneficiar.",
+        "Usou um chapéu para esconder a câmera."
+      ],
+      "is_culprit": false,
+      "nationality": "americano",
+      "speaks_portuguese": false
+    }
+  ],
+  "officer_name": "Delegado Cezar",
+  "prologue": [
+    {
+      "shot": "establishing",
+      "speaker": "narrador",
+      "text": "Porto Alegre, 1947. O ar quente da manhã se mistura com o cheiro de café e a batida de rádio.",
+      "suspect_id": null
+    },
+    {
+      "shot": "crime",
+      "speaker": "narrador",
+      "text": "Um rugido de microfone cai, a luz piscando no estúdio da Rádio Vela.",
+      "suspect_id": null
+    },
+    {
+      "shot": "crime",
+      "speaker": "narrador",
+      "text": "Eduardo Rocha, em plena fala, desmaia, e o som de sua voz fica em silêncio.",
+      "suspect_id": null
+    },
+    {
+      "shot": "arrival",
+      "speaker": "narrador",
+      "text": "A polícia já está no local, a porta trancada, enquanto o público aguarda, sem saber.",
+      "suspect_id": null
+    },
+    {
+      "shot": "officer",
+      "speaker": "policial",
+      "text": "Delegado, o apresentador Eduardo morreu por envenenamento. Preciso saber quem foi.",
+      "suspect_id": null
+    },
+    {
+      "shot": "officer",
+      "speaker": "policial",
+      "text": "Temos três pessoas envolvidas no programa. Um produtor, um operador e um convidado.",
+      "suspect_id": null
+    },
+    {
+      "shot": "suspect",
+      "speaker": "policial",
+      "text": "Harris, produtor, sempre pareceu estar em apuros, mas não há provas.",
+      "suspect_id": "harris"
+    },
+    {
+      "shot": "suspect",
+      "speaker": "policial",
+      "text": "Horácio, operador, estava no estúdio, mas não sabe de nada.",
+      "suspect_id": "horacio"
+    },
+    {
+      "shot": "suspect",
+      "speaker": "policial",
+      "text": "John, o convidado americano, fala apenas em inglês, mas está aqui para o programa.",
+      "suspect_id": "john"
+    },
+    {
+      "shot": "officer",
+      "speaker": "policial",
+      "text": "Um deles está mentindo, detetive. O estúdio tem segredos.",
+      "suspect_id": null
+    }
+  ]
+}

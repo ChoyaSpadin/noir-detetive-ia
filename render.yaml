@@ -1,0 +1,38 @@
+# Blueprint do Render (plano grátis, sem cartão): site + servidor do jogo.
+# A voz dos suspeitos roda à parte, no Modal (deploy/modal_voice.py).
+# Chaves entram pelo painel do Render (sync: false = nunca ficam no repositório).
+services:
+  - type: web
+    name: noir-detetive-ia-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements-server.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: KOKORO_KEY
+        sync: false
+      - key: KOKORO_URL
+        value: https://projetosspadin--noir-voz-voz-web.us-east.modal.run
+      - key: CASE_POOL
+        value: "0"
+      # Endereço público do site (padrão do Render: <nome>.onrender.com). Se o nome estiver
+      # ocupado, o Render acrescenta um sufixo: corrija aqui ou no painel.
+      - key: ALLOWED_ORIGINS
+        value: https://noir-detetive-ia.onrender.com
+
+  - type: web
+    name: noir-detetive-ia
+    runtime: static
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_URL # endereço público do servidor (lido no build do site)
+        value: https://noir-detetive-ia-api.onrender.com

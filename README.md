@@ -38,8 +38,20 @@ Covers case validation, truth leakage, prompt isolation between suspects, questi
 ## Assets
 Characters and animations: [Quaternius](https://quaternius.com) Universal Base Characters + Universal Animation Library (CC0). `frontend/scripts/build-assets.mjs` trims and compresses them (188 MB → 1.5 MB: WebP textures, meshopt, only used clips).
 
+## Deploy (free tiers, no credit card)
+The game is split so it keeps working when the voice budget runs out:
+
+| Piece | Where | Notes |
+|---|---|---|
+| Static site | any static host (Vite build) | Ships the case archive (public data only), so the menu opens instantly |
+| Game API (`backend/`) | Render free (`render.yaml`, 512 MB) | No voice model; sleeps after 15 min, the site wakes it on load |
+| Suspect voices (Kokoro) | Modal Starter (`deploy/modal_voice.py`) | Scales to zero, max 1 container, protected by a shared key. If credits run out, answers fall back to text-only |
+
+Case library: `python backend/scripts/build_library.py --novos 5` generates validated cases and pre-narrates their intros to MP3 (`backend/app/library/`), so playing a library case costs no TTS quota.
+
 ## Roadmap
 1. ~~MVP: one scene, 3 suspects, chat, accusation~~
 2. ~~Visuals: rigged/animated characters, animated intro, camera cuts~~ (next: clothing with real volume)
-3. Quality: consistency evals for generated cases, response cache, Supabase persistence, deploy
-4. Voice interrogation
+3. ~~Voice interrogation (push-to-talk, Whisper, PT/EN)~~
+4. Quality: consistency evals for suspects and generated cases
+5. Deploy and showcase

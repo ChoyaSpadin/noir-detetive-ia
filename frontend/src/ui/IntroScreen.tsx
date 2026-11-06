@@ -1,11 +1,13 @@
 import type { PublicCase } from '../api'
 import { foreignBadge } from './language'
+import { CaseArchive } from './CaseArchive'
 
 interface IntroScreenProps {
   caseData: PublicCase | null
   loading: boolean
   error: string | null
-  onOpenCase: () => void
+  serverReady: boolean
+  onOpenCase: (libraryId: string | null) => void
   onStartInterrogation: () => void
 }
 
@@ -13,6 +15,7 @@ export function IntroScreen({
   caseData,
   loading,
   error,
+  serverReady,
   onOpenCase,
   onStartInterrogation,
 }: IntroScreenProps) {
@@ -30,25 +33,10 @@ export function IntroScreen({
             {error && (
               <div className="error-banner" role="alert">
                 <p>{error}</p>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={onOpenCase}
-                  disabled={loading}
-                >
-                  Tentar de novo
-                </button>
               </div>
             )}
 
-            <button
-              type="button"
-              className="btn btn-primary btn-large"
-              onClick={onOpenCase}
-              disabled={loading}
-            >
-              {loading ? 'Abrindo dossiê...' : 'Abrir caso'}
-            </button>
+            <CaseArchive serverReady={serverReady} loading={loading} onOpen={onOpenCase} />
           </div>
         ) : (
           <div className="briefing-content">

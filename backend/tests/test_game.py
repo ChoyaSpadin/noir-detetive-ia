@@ -166,6 +166,7 @@ def test_generated_case_without_prologue_gets_default():
 
 def test_prologue_audio_without_tts_returns_503(client, tmp_path, monkeypatch):
     monkeypatch.setattr("app.tts.CACHE_DIR", tmp_path)  # cache vazio: sem voz e sem áudio guardado
+    monkeypatch.setattr("app.main.LIBRARY_DIR", tmp_path)  # e sem intro pré-narrada da biblioteca
     case = new_case(client)
     assert client.get(f"/api/cases/{case['case_id']}/prologue/0/audio").status_code == 503
     assert client.get(f"/api/cases/{case['case_id']}/prologue/99/audio").status_code == 404
@@ -318,3 +319,44 @@ def test_speech_language_follows_text_then_question():
     assert speech_language("Eu estava no camarim.", "Where were you?") == "pt"
     assert speech_language("Yes.", "Where were you?") == "en"  # trecho curto segue a pergunta
     assert speech_language("Sim, senhor.", "Where were you?") == "pt"
+
+
+def test_open_case_from_library(client):
+    from app.cases import seed_case
+
+    app.state.library = {"hotel-aurora": seed_case()}
+    r = client.post("/api/cases", json={"library_id": "hotel-aurora"})
+    assert r.status_code == 200 and r.json()["title"] == seed_case().title
+    assert "culprit_id" not in r.json()  # verdade continua no servidor
+    assert client.post("/api/cases", json={"library_id": "nao-existe"}).status_code == 404
+
+
+def test_remote_voice_falls_back_to_text_when_service_fails():
+    import asyncio
+
+    import httpx
+
+    from app.kokoro_voice import RemoteKokoro
+
+    calls = []
+
+    def handler(request):
+        calls.append(request.url.path)
+        if request.headers.get("X-Voice-Key") != "k":
+            return httpx.Response(401)
+        if request.url.path == "/synth" and len(calls) == 1:
+            return httpx.Response(200, content=b"RIFFfake")
+        return httpx.Response(402, json={"detail": "sem crédito"})  # ex.: crédito do mês acabou
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            voice = RemoteKokoro("https://voz.example", "k", client)
+            first = await voice.synth("Oi.", "pm_alex", "pt-br")
+            second = await voice.synth("Oi de novo.", "pm_alex", "pt-br")
+            third = await voice.synth("E agora?", "pm_alex", "pt-br")
+            return first, second, third, voice.enabled
+
+    first, second, third, enabled = asyncio.run(run())
+    assert first == b"RIFFfake"
+    assert second is None and third is None  # falhou: segue só com texto
+    assert not enabled and len(calls) == 2  # e para de tentar por um tempo (não atrasa as respostas)

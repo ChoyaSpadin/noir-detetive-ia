@@ -125,3 +125,61 @@ class KokoroVoice:
         except Exception:  # voz é enfeite: falha não pode derrubar o interrogatório
             log.exception("Kokoro falhou")
             return None
+
+
+class RemoteKokoro:
+    """Mesma interface do KokoroVoice, mas a voz é gerada no serviço do Modal (deploy/modal_voice.py).
+
+    No ar, o servidor principal (grátis, 512 MB) não comporta o modelo. Se o serviço falhar
+    (sem crédito no mês, fora do ar), a voz desliga por 10 min e o jogo segue só com texto.
+    """
+
+    COOLDOWN_S = 600
+
+    def __init__(self, url: str, key: str, client) -> None:
+        self.url = url.rstrip("/")
+        self.key = key
+        self.client = client
+        self._down_until = 0.0
+
+    @property
+    def enabled(self) -> bool:
+        import time
+
+        return time.time() >= self._down_until
+
+    def hold(self, on: bool) -> None:  # prioridade é do lado do serviço (uma geração por vez)
+        pass
+
+    def warm_up(self) -> None:
+        """Acorda o serviço de voz (carregar o modelo leva ~15 s) sem esperar a resposta."""
+
+        async def ping() -> None:
+            try:
+                await self.client.get(f"{self.url}/warm", timeout=60)
+            except Exception:  # noqa: BLE001 - acordar é só otimização
+                pass
+
+        try:
+            asyncio.get_running_loop().create_task(ping())
+        except RuntimeError:
+            pass
+
+    async def synth(self, text: str, voice: str, lang: str, speed: float = 1.0, urgent: bool = True) -> bytes | None:
+        import time
+
+        if not self.enabled:
+            return None
+        try:
+            r = await self.client.post(
+                f"{self.url}/synth",
+                json={"text": text, "voice": voice, "lang": lang, "speed": speed},
+                headers={"X-Voice-Key": self.key},
+                timeout=40 if urgent else 120,
+            )
+            r.raise_for_status()
+            return r.content
+        except Exception as exc:  # noqa: BLE001 - voz é enfeite
+            log.warning("Serviço de voz falhou (%s); seguindo sem voz por %d min", exc, self.COOLDOWN_S // 60)
+            self._down_until = time.time() + self.COOLDOWN_S
+            return None

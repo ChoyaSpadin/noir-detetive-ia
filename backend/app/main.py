@@ -17,8 +17,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from .agents import ask_suspect, is_confession, speech_language, stream_suspect
 from .cases import default_prologue, generate_case
 from .llm import LLMChain, build_chain_from_env
+from pydantic import BaseModel
+
 from .schemas import (
     AccuseRequest,
+    CaseTruth,
     AccuseResponse,
     InterrogateRequest,
     InterrogateResponse,
@@ -26,7 +29,7 @@ from .schemas import (
     PublicSuspect,
 )
 from .store import GameSession, SessionStore
-from .kokoro_voice import KokoroVoice, voice_for
+from .kokoro_voice import KokoroVoice, RemoteKokoro, voice_for
 from .tts import TTS, WHISPER_MODEL
 
 load_dotenv()
@@ -88,10 +91,15 @@ async def lifespan(app: FastAPI):
         if not hasattr(app.state, "llm"):  # testes podem injetar outra cadeia
             app.state.llm = build_chain_from_env(client)
         app.state.http = client
+        app.state.library = load_library()
         app.state.store = SessionStore()
         # Testes desligam a voz (TTS_DISABLED) para não chamar a API de verdade.
         key = None if os.getenv("TTS_DISABLED") else os.getenv("GEMINI_API_KEY")
-        app.state.kokoro = KokoroVoice()
+        # No ar: voz no serviço do Modal (KOKORO_URL). Local: modelo no próprio PC.
+        if os.getenv("KOKORO_URL") and not os.getenv("KOKORO_DISABLED"):
+            app.state.kokoro = RemoteKokoro(os.environ["KOKORO_URL"], os.getenv("KOKORO_KEY", ""), client)
+        else:
+            app.state.kokoro = KokoroVoice()
         app.state.kokoro.warm_up()
         app.state.tts = TTS(client, key, None if os.getenv("TTS_DISABLED") else os.getenv("GROQ_API_KEY"), app.state.kokoro)
         app.state.last_activity = 0.0  # último interrogatório (a fila espera o jogador parar)
@@ -101,10 +109,20 @@ async def lifespan(app: FastAPI):
         await app.state.pool.stop()
 
 
+def _allowed_origins() -> list[str]:
+    """Origens do site. No Render chega só o host (ex.: noir.onrender.com): vira https://host."""
+    out = []
+    for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(","):
+        o = o.strip().rstrip("/")
+        if o:
+            out.append(o if o.startswith(("http://", "https://")) else f"https://{o}")
+    return out
+
+
 app = FastAPI(title="Noir: Detetive IA", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")],
+    allow_origins=_allowed_origins(),
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
@@ -147,10 +165,34 @@ async def health() -> dict:
     return {"status": "ok", "providers": [p.name for p in llm.providers], "offline": llm.allow_mock, "tts": app.state.tts.available, "cases_ready": len(app.state.pool.ready)}
 
 
+LIBRARY_DIR = Path(__file__).resolve().parent / "library"
+
+
+def load_library() -> dict[str, CaseTruth]:
+    """Casos prontos (backend/app/library/cases/*.json), montados por scripts/build_library.py."""
+    cases: dict[str, CaseTruth] = {}
+    for path in sorted((LIBRARY_DIR / "cases").glob("*.json")):
+        try:
+            cases[path.stem] = CaseTruth.model_validate_json(path.read_text(encoding="utf-8"))
+        except ValueError:
+            log.warning("Caso da biblioteca inválido: %s", path.name)
+    return cases
+
+
+class NewCaseRequest(BaseModel):
+    library_id: str | None = None  # caso pronto do arquivo; sem isso, a IA cria um inédito
+
+
 @app.post("/api/cases", response_model=PublicCase)
-async def new_case() -> PublicCase:
-    ready = app.state.pool.take()
-    case, source = ready if ready else await generate_case(_llm())
+async def new_case(req: NewCaseRequest | None = None) -> PublicCase:
+    library: dict[str, CaseTruth] = app.state.library
+    if req and req.library_id:
+        if req.library_id not in library:
+            raise HTTPException(404, "Caso não encontrado no arquivo.")
+        case, source = library[req.library_id].model_copy(deep=True), "biblioteca"
+    else:
+        ready = app.state.pool.take()
+        case, source = ready if ready else await generate_case(_llm())
     session = GameSession(case=case, case_source=source, max_questions=MAX_QUESTIONS)
     _store().add(session)
     public = to_public(session)
@@ -167,6 +209,9 @@ async def prologue_audio(case_id: str, line: int) -> Response:
         raise HTTPException(404, "Fala inexistente.")
     tts = app.state.tts
     text, speaker = lines[line].text, lines[line].speaker
+    mp3 = LIBRARY_DIR / "audio" / f"{tts.key(text, speaker)}.mp3"  # intro já narrada (biblioteca)
+    if mp3.exists():
+        return Response(mp3.read_bytes(), media_type="audio/mpeg", headers={"Cache-Control": "public, max-age=604800"})
     if not tts.available and not tts.has_cached(text, speaker):
         raise HTTPException(503, "Sem cota de voz agora.")
     audio = await tts.get(text, speaker)

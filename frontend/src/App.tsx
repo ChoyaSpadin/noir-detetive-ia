@@ -40,6 +40,25 @@ export default function App() {
   const [loadingAccuse, setLoadingAccuse] = useState<boolean>(false)
 
   const [caseError, setCaseError] = useState<string | null>(null)
+  const [serverReady, setServerReady] = useState(false)
+
+  // Acorda o servidor assim que o site abre (no ar, o plano grátis dorme após 15 min parado).
+  useEffect(() => {
+    let alive = true
+    const tryWake = async () => {
+      for (let i = 0; i < 60 && alive; i++) {
+        if (await api.health()) {
+          if (alive) setServerReady(true)
+          return
+        }
+        await new Promise((r) => setTimeout(r, 3000))
+      }
+    }
+    void tryWake()
+    return () => {
+      alive = false
+    }
+  }, [])
   const [chatError, setChatError] = useState<string | null>(null)
   const [accuseError, setAccuseError] = useState<string | null>(null)
 
@@ -70,12 +89,12 @@ export default function App() {
     }, durationMs)
   }, [])
 
-  const handleOpenCase = useCallback(async () => {
+  const handleOpenCase = useCallback(async (libraryId: string | null = null) => {
     startAmbience('cutscene')
     setLoadingCase(true)
     setCaseError(null)
     try {
-      const data = await api.newCase()
+      const data = await api.newCase(libraryId)
       const initialChats: Record<string, ChatMessage[]> = {}
       const initialEmotions: Record<string, Emotion> = {}
       for (const s of data.suspects) {
@@ -316,7 +335,8 @@ export default function App() {
           caseData={phase === 'briefing' ? caseData : null}
           loading={loadingCase}
           error={caseError}
-          onOpenCase={() => void handleOpenCase()}
+          serverReady={serverReady}
+          onOpenCase={(id) => void handleOpenCase(id)}
           onStartInterrogation={handleStartInterrogation}
         />
       )}

@@ -1,0 +1,174 @@
+{
+  "title": "A Última Nota no Hotel Aurora",
+  "setting": "Rio de Janeiro, 1952. Uma noite de tempestade no Hotel Aurora, em Copacabana.",
+  "intro": "Às 23h40, Vicente Albuquerque, dono do Hotel Aurora, foi encontrado morto no próprio escritório, com um copo de uísque pela metade. O médico sentiu cheiro de amêndoas: cianeto. Três pessoas estavam no hotel e tinham motivo. A chuva fechou as ruas. Ninguém sai até você descobrir quem foi.",
+  "victim": {
+    "name": "Vicente Albuquerque",
+    "description": "Dono do hotel, 58 anos. Charmoso em público, implacável com dinheiro."
+  },
+  "culprit_id": "otavio",
+  "method": "Cianeto colocado na garrafa de uísque do escritório por volta das 23h10.",
+  "motive": "Otávio desviava dinheiro do hotel havia dois anos e Vicente tinha descoberto.",
+  "timeline": [
+    "22h30: Helena começa a cantar no palco do clube do hotel.",
+    "22h50: Vicente avisa Otávio que vai revisar o livro-caixa amanhã cedo.",
+    "23h05: Otávio sai do bar do saguão dizendo que ia telefonar.",
+    "23h10: Otávio sobe pela escada de serviço e envenena a garrafa no escritório.",
+    "23h15: Rosa vê um homem de chapéu escuro na escada de serviço.",
+    "23h25: Otávio volta ao bar.",
+    "23h30: Vicente se serve de uísque no escritório.",
+    "23h40: Rosa encontra o corpo ao levar toalhas."
+  ],
+  "solution": "Foi Otávio Reis. Ele desviava dinheiro do hotel e Vicente ia revisar o livro-caixa na manhã seguinte. Disse que ficou no bar a noite toda, mas Helena viu do palco o banco dele vazio por uns vinte minutos perto das 23h, e Rosa viu um homem de chapéu escuro na escada de serviço às 23h15. As páginas arrancadas do livro-caixa fecham o caso.",
+  "suspects": [
+    {
+      "id": "helena",
+      "name": "Helena Duarte",
+      "role": "Cantora do clube",
+      "description": "Vestido vinho, voz rouca, olhar cansado de quem cantou a noite inteira.",
+      "look": {
+        "color": "#7a1f3d",
+        "accent": "#e0b04a",
+        "hat": false,
+        "height": 1.0,
+        "gender": "feminino"
+      },
+      "personality": "Elegante, irônica, orgulhosa. Fica triste quando falam de Vicente.",
+      "relationship": "Diz que Vicente era só o patrão e que pagava bem.",
+      "alibi_claim": "Estava no palco cantando das 22h30 às 23h30, com o clube lotado.",
+      "alibi_truth": "Estava mesmo no palco das 22h30 às 23h30.",
+      "knowledge": [
+        "Do palco dá para ver o bar do saguão. Perto das 23h, o banco onde o Otávio sempre senta ficou vazio uns vinte minutos.",
+        "Vicente e Otávio discutiram baixo no bar antes do show, umas 22h50. Vicente falou algo sobre 'os livros'.",
+        "Vicente guardava uma garrafa de uísque escocês no escritório e só ele bebia dela."
+      ],
+      "secrets": [
+        "Tinha um caso com Vicente havia um ano, e ele ia terminar tudo e demiti-la."
+      ],
+      "is_culprit": false,
+      "nationality": null,
+      "speaks_portuguese": true
+    },
+    {
+      "id": "otavio",
+      "name": "Otávio Reis",
+      "role": "Sócio e contador",
+      "description": "Terno cinza impecável, chapéu fedora escuro, sorriso educado demais.",
+      "look": {
+        "color": "#3b4252",
+        "accent": "#c9a227",
+        "hat": true,
+        "height": 1.06,
+        "gender": "masculino"
+      },
+      "personality": "Calmo, formal, prestativo. Fica irritado quando falam de dinheiro ou dos livros.",
+      "relationship": "Diz que eram sócios e amigos havia vinte anos.",
+      "alibi_claim": "Ficou no bar do saguão a noite toda, ouvindo Helena cantar.",
+      "alibi_truth": "Saiu do bar às 23h05, subiu pela escada de serviço e envenenou o uísque. Voltou às 23h25.",
+      "knowledge": [
+        "Rosa, a camareira, anda nervosa e alguns hóspedes reclamaram de joias sumidas.",
+        "Helena e Vicente pareciam próximos demais para patrão e funcionária.",
+        "O escritório de Vicente fica no segundo andar, perto da escada de serviço."
+      ],
+      "secrets": [
+        "Desviava dinheiro do hotel havia dois anos.",
+        "Arrancou páginas do livro-caixa naquela noite.",
+        "Saiu do bar perto das 23h. Se for confrontado com isso, diz que foi telefonar para a esposa."
+      ],
+      "is_culprit": true,
+      "nationality": null,
+      "speaks_portuguese": true
+    },
+    {
+      "id": "rosa",
+      "name": "Rosa Lima",
+      "role": "Camareira",
+      "description": "Uniforme engomado, mãos inquietas, fala baixo e evita olhar nos olhos.",
+      "look": {
+        "color": "#2f4f4f",
+        "accent": "#d9d9d9",
+        "hat": false,
+        "height": 0.92,
+        "gender": "feminino"
+      },
+      "personality": "Tímida, assustada, sincera sobre o crime, mas esconde o próprio deslize.",
+      "relationship": "Trabalhava no hotel havia três anos. Vicente era duro, mas pagava em dia.",
+      "alibi_claim": "Arrumava os quartos do segundo andar e levou toalhas ao escritório às 23h40, quando encontrou o corpo.",
+      "alibi_truth": "Arrumava os quartos do segundo andar e encontrou o corpo às 23h40.",
+      "knowledge": [
+        "Às 23h15 viu um homem de chapéu escuro subindo a escada de serviço. Não viu o rosto.",
+        "Quando encontrou o corpo, o livro-caixa estava aberto na mesa com páginas arrancadas.",
+        "Sentiu um cheiro estranho, de amêndoas, perto do copo."
+      ],
+      "secrets": [
+        "Pegou um broche de uma hóspede na semana passada e tem medo de ser descoberta."
+      ],
+      "is_culprit": false,
+      "nationality": null,
+      "speaks_portuguese": true
+    }
+  ],
+  "officer_name": "Sargento Moreira",
+  "prologue": [
+    {
+      "shot": "establishing",
+      "speaker": "narrador",
+      "text": "Rio de Janeiro, 1952. A chuva não parava havia três dias.",
+      "suspect_id": null
+    },
+    {
+      "shot": "crime",
+      "speaker": "narrador",
+      "text": "No segundo andar do Hotel Aurora, alguém entrou no escritório sem fazer barulho...",
+      "suspect_id": null
+    },
+    {
+      "shot": "crime",
+      "speaker": "narrador",
+      "text": "Às 23h30, Vicente Albuquerque se serviu do último uísque da vida dele.",
+      "suspect_id": null
+    },
+    {
+      "shot": "arrival",
+      "speaker": "narrador",
+      "text": "Meia-noite e dez. A polícia já tinha isolado a sala quando você chegou.",
+      "suspect_id": null
+    },
+    {
+      "shot": "officer",
+      "speaker": "policial",
+      "text": "Detetive, finalmente. O morto é Vicente Albuquerque, dono do hotel. Cianeto no uísque.",
+      "suspect_id": null
+    },
+    {
+      "shot": "officer",
+      "speaker": "policial",
+      "text": "A camareira achou o corpo às 23h40. Ninguém saiu do hotel por causa da chuva. Separei três pessoas.",
+      "suspect_id": null
+    },
+    {
+      "shot": "suspect",
+      "speaker": "policial",
+      "text": "Helena Duarte, a cantora do clube. Estava no palco a noite toda, segundo ela.",
+      "suspect_id": "helena"
+    },
+    {
+      "shot": "suspect",
+      "speaker": "policial",
+      "text": "Otávio Reis, sócio e contador. Diz que não saiu do bar.",
+      "suspect_id": "otavio"
+    },
+    {
+      "shot": "suspect",
+      "speaker": "policial",
+      "text": "Rosa Lima, a camareira. Foi ela quem encontrou o corpo.",
+      "suspect_id": "rosa"
+    },
+    {
+      "shot": "officer",
+      "speaker": "policial",
+      "text": "Um deles está mentindo, detetive. A sala é sua.",
+      "suspect_id": null
+    }
+  ]
+}

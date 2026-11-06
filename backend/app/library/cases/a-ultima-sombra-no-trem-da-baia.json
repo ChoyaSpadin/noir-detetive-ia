@@ -1,0 +1,171 @@
+{
+  "title": "A Última Sombra no Trem da Baía",
+  "setting": "Trem de luxo Interlagos, 1957. Uma noite enevoada cruzando o litoral paulista do Rio de Janeiro.",
+  "intro": "Às 23h15, o capitão Fernando Valente foi encontrado mortificado na cabine de comando, com um martelo de ouro na mão. A fumaça densa da locomotiva escondia o som do impacto. Três passageiros estavam a bordo e têm motivos. O trem ainda segue em direção ao Rio. Descubra quem o matou.",
+  "victim": {
+    "name": "Capitão Fernando Valente",
+    "description": "Chefe da locomotiva, 48 anos. Rigoroso, respeitado, mas detido por segredos."
+  },
+  "culprit_id": "santiago",
+  "method": "O martelo de ouro, pertencente ao capitão, foi arremessado para fora da cabine, causando a morte, por volta das 23h45.",
+  "motive": "Santiago invejava a posição de liderança de Fernando e queria assumir o comando.",
+  "timeline": [
+    "22h00: Passageiros chegam na Estação da Luz.",
+    "22h30: Três suspeitos embarcam: Santiago, Maria Clara e Hugo.",
+    "23h00: O trem parte em direção ao Rio.",
+    "23h30: O motor começa a tremular, a tripulação faz manutenção.",
+    "23h40: O capitão ordena revisão da cabine.",
+    "23h45: O capitão é encontrado morto.",
+    "24h00: Chegada ao Rio."
+  ],
+  "solution": "Santiago, o capitão da companhia, usou o martelo de ouro para se libertar da posição de Fernando, que o ameaçava. Maria Clara, com vista da cabine, viu o capitão segurar o martelo; Hugo, na sala de máquinas, ouviu um barulho estranho. O martelo tinha marcas de sangue nas mãos de Santiago. O alibi falso do culpado deixa os inocentes com pistas contraditórias.",
+  "suspects": [
+    {
+      "id": "santiago",
+      "name": "Santiago Lemos",
+      "role": "Ex-capitão da companhia",
+      "description": "Cabelos grisalhos, postura firme, olhos que escondem rancor.",
+      "look": {
+        "color": "#1e1b20",
+        "accent": "#4a4e4d",
+        "hat": true,
+        "height": 1.04,
+        "gender": "masculino"
+      },
+      "personality": "Autoritário, mas com cicatrizes de desilusão.",
+      "relationship": "Era subordinado direto de Fernando, mas foi degradado.",
+      "alibi_claim": "Estava na sala de máquinas a noite toda, verificando os sistemas.",
+      "alibi_truth": "Saiu da sala de máquinas às 23h38, subiu a escada para a cabine e arremessou o martelo.",
+      "knowledge": [
+        "O martelo de ouro tem marcas de sangue nas mãos de quem o segurou.",
+        "O capitão costuma usar o martelo para sinalizar urgências na cabine.",
+        "Hugo viu uma sombra na escada pouco antes da morte."
+      ],
+      "secrets": [
+        "Tem um contrato secreto com a empresa concorrente para assumir o comando."
+      ],
+      "is_culprit": true,
+      "nationality": null,
+      "speaks_portuguese": true
+    },
+    {
+      "id": "maria",
+      "name": "Maria Clara Nunes",
+      "role": "Passageira de classe alta",
+      "description": "Veste um vestido preto elegante, carisma cauteloso, sempre observando.",
+      "look": {
+        "color": "#2b1d33",
+        "accent": "#7e5e90",
+        "hat": false,
+        "height": 0.95,
+        "gender": "feminino"
+      },
+      "personality": "Curiosa, mas cautelosa, evita conflitos.",
+      "relationship": "Conhecida de longa data de Fernando, mas tem segundas intenções.",
+      "alibi_claim": "Estava no corredor próximo à cabine, lendo um romance, até 23h50.",
+      "alibi_truth": "Estava no corredor até 23h50, mas passou por cima do corredor da cabine às 23h42, sem notar quem estava ali.",
+      "knowledge": [
+        "Viu o capitão segurando o martelo de ouro antes da morte.",
+        "Hugo passou na sala de máquinas e não percebeu nada.",
+        "O martelo de ouro tinha marcas de sangue nas mãos de Santiago."
+      ],
+      "secrets": [
+        "Tinha um romance secreto com o capitão e está grávida do filho dele."
+      ],
+      "is_culprit": false,
+      "nationality": null,
+      "speaks_portuguese": true
+    },
+    {
+      "id": "hugo",
+      "name": "Hugo Valença",
+      "role": "Engenheiro do trem",
+      "description": "Focado e meticuloso, cabelos curtos e um olhar sempre atento.",
+      "look": {
+        "color": "#2f1e2f",
+        "accent": "#8b7d8b",
+        "hat": false,
+        "height": 1.02,
+        "gender": "masculino"
+      },
+      "personality": "Rigoroso, gosta de ordem, evita drama.",
+      "relationship": "Colaborador de longa data de Santiago, mas não conhece Fernando pessoalmente.",
+      "alibi_claim": "Estava na sala de máquinas verificando os sistemas até a madrugada.",
+      "alibi_truth": "Estava na sala de máquinas, mas saiu às 23h35 para checar a cabine e voltou às 23h45, pouco depois do crime.",
+      "knowledge": [
+        "Ouviu um barulho estranho na escada a 23h34.",
+        "Santiago e o capitão tinham discussões frequentes sobre o comando.",
+        "O martelo de ouro ficou no chão da cabine, mas alguém o levantou."
+      ],
+      "secrets": [
+        "Tem um pacto com a companhia concorrente, mas não sabe que Santiago também tem."
+      ],
+      "is_culprit": false,
+      "nationality": null,
+      "speaks_portuguese": true
+    }
+  ],
+  "officer_name": "Detetive Lúcio Prado",
+  "prologue": [
+    {
+      "shot": "establishing",
+      "speaker": "narrador",
+      "text": "São Paulo, 1957. A noite escura engoliu a luz do trem Interlagos.",
+      "suspect_id": null
+    },
+    {
+      "shot": "crime",
+      "speaker": "narrador",
+      "text": "Na cabine de comando, o capitão Valente cai no chão, martelo de ouro nas mãos.",
+      "suspect_id": null
+    },
+    {
+      "shot": "crime",
+      "speaker": "narrador",
+      "text": "O barulho ecoa nas paredes de ferro, abafado pela fumaça.",
+      "suspect_id": null
+    },
+    {
+      "shot": "arrival",
+      "speaker": "narrador",
+      "text": "O detetive chega, o trem ainda está em movimento.",
+      "suspect_id": null
+    },
+    {
+      "shot": "officer",
+      "speaker": "policial",
+      "text": "Detetive, a vítima é o capitão Valente, encontrado morto com um martelo de ouro.",
+      "suspect_id": null
+    },
+    {
+      "shot": "officer",
+      "speaker": "policial",
+      "text": "A locomotiva está parada em uma curva, e três passageiros têm suspeitas.",
+      "suspect_id": null
+    },
+    {
+      "shot": "suspect",
+      "speaker": "policial",
+      "text": "Santiago, ex-capitão, a bordo, afirma ter estado na sala de máquinas.",
+      "suspect_id": "santiago"
+    },
+    {
+      "shot": "suspect",
+      "speaker": "policial",
+      "text": "Maria Clara, a bordo, diz que estava no corredor próximo à cabine.",
+      "suspect_id": "maria"
+    },
+    {
+      "shot": "suspect",
+      "speaker": "policial",
+      "text": "Hugo, o engenheiro, afirma que estava na sala de máquinas, verificando os sistemas.",
+      "suspect_id": "hugo"
+    },
+    {
+      "shot": "officer",
+      "speaker": "policial",
+      "text": "Um deles mentiu. Descubra quem.",
+      "suspect_id": null
+    }
+  ]
+}

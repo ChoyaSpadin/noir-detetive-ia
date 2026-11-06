@@ -1,3 +1,4 @@
+import { API_BASE } from '../api'
 // Síntese de voz via Web Speech API (speechSynthesis) para narrador e policial.
 
 import { getVolume, onSoundChange } from './ambience'
@@ -54,7 +55,7 @@ function neuralUrl(caseId: string, line: number): Promise<string | null> {
   const key = `${caseId}:${line}`
   let p = neuralCache.get(key)
   if (!p) {
-    const base = import.meta.env.VITE_API_URL ?? ''
+    const base = API_BASE
     p = fetch(`${base}/api/cases/${caseId}/prologue/${line}/audio`)
       .then((r) => (r.ok ? r.blob() : null))
       .then((b) => (b ? URL.createObjectURL(b) : null))
@@ -200,7 +201,7 @@ let answerToken = 0
 export function playAnswer(urls: string[], onStart: () => void, onEnd: () => void): void {
   stopAnswer()
   const token = ++answerToken
-  const base = import.meta.env.VITE_API_URL ?? ''
+  const base = API_BASE
   const els = urls.map((u) => {
     const el = new Audio()
     el.preload = 'auto'

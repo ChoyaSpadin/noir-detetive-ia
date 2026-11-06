@@ -1410,3 +1410,97 @@ body,
   border: 1px solid rgba(232, 226, 212, 0.22);
   color: #e8e2d4;
 }
+
+/* Arquivo de casos (tela inicial) */
+.archive,
+.archive-detail {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+
+.archive-detail {
+  align-items: stretch;
+}
+
+.archive-back {
+  align-self: flex-start;
+}
+
+.archive-hint,
+.archive-wake {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted, #a9a39a);
+  text-align: center;
+}
+
+.archive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.archive-folder {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  text-align: left;
+  padding: 22px 14px 14px;
+  border-radius: 4px 10px 10px 10px;
+  border: 1px solid rgba(201, 154, 72, 0.35);
+  background: linear-gradient(160deg, rgba(120, 92, 52, 0.42), rgba(52, 40, 26, 0.55));
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease;
+}
+
+.archive-folder:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(255, 178, 87, 0.7);
+}
+
+.archive-folder:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.archive-folder strong {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.archive-folder-tab {
+  position: absolute;
+  top: -1px;
+  left: 10px;
+  padding: 2px 8px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: #1c150c;
+  background: #c99a48;
+  border-radius: 0 0 6px 6px;
+}
+
+.archive-folder-setting {
+  font-size: 12px;
+  color: var(--text-muted, #a9a39a);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.archive-folder-new {
+  background: linear-gradient(160deg, rgba(70, 20, 20, 0.5), rgba(30, 12, 12, 0.6));
+  border-style: dashed;
+}
+
+.intro-card:has(.archive) {
+  max-width: 760px;
+}
