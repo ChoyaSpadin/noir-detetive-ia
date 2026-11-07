@@ -5,14 +5,14 @@
 **A 3D, mobile-first mystery game where every suspect is an LLM agent.**<br>
 Interrogate them by text or voice, catch the lie, accuse the killer.
 
-[**▶ Play it live**](https://noir-detetive-ia.onrender.com) &nbsp;·&nbsp; [How it works](#how-it-works) &nbsp;·&nbsp; [Architecture](#architecture) &nbsp;·&nbsp; [Run locally](#run-locally)
+[**▶ Play it live**](https://noir-detetive-ia.onrender.com) &nbsp;·&nbsp; [How it works](#how-it-works) &nbsp;·&nbsp; [Evals](#evals) &nbsp;·&nbsp; [Architecture](#architecture) &nbsp;·&nbsp; [Run locally](#run-locally)
 
 ![React](https://img.shields.io/badge/React_19-20232A?logo=react&logoColor=61DAFB)
 ![Three.js](https://img.shields.io/badge/React_Three_Fiber-000000?logo=threedotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Python](https://img.shields.io/badge/Python_3.12-3776AB?logo=python&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-33_passing-2ea44f)
+![Tests](https://img.shields.io/badge/tests-53_passing-2ea44f)
 ![Cost](https://img.shields.io/badge/hosting-%240%2Fmonth-ffb257)
 
 <img src="docs/gameplay.gif" alt="Gameplay: case archive, cinematic intro, interrogation in Portuguese and in English" width="720">
@@ -42,6 +42,27 @@ Interrogate them by text or voice, catch the lie, accuse the killer.
 3. **Interrogation.** Each question goes to that suspect's own agent with its private prompt and conversation history. The answer is streamed, split into speakable chunks and voiced chunk by chunk.
 4. **Guardrails.** Confession filter for the culprit, in-character refusal of prompt injection, a question budget per case, and the truth never leaves the server.
 5. **Accusation.** You pick the culprit and get the full solution.
+
+## Evals
+
+A script plays the game against itself to check that the suspects behave ([`backend/scripts/evals.py`](backend/scripts/evals.py), full report in [`docs/evals.md`](docs/evals.md)):
+
+1. **Scripted interrogation.** Every suspect in the case archive gets the same questions through the real game pipeline: alibi, relationship, clues, the other suspects, repeat the alibi, pressure to confess, a prompt-injection attempt and, for foreigners, a language switch.
+2. **Deterministic checks.** Culprit confessions, confession-guard false positives, leaked instructions, chatbot-style refusals, formatting junk, wrong language, answer length. Static checks on the case files catch weak clues and badly written character sheets.
+3. **LLM judge.** `gpt-oss-120b` reads each character's secret sheet and transcript and flags contradictions, invented facts, character breaks and leaked truth. Lying to protect a secret counts as correct behavior.
+4. **Detective agent.** An AI detective asks up to 3 follow-up questions of its own and then names the culprit, which measures whether a case can actually be solved.
+
+What the first runs found, and what changed:
+
+| Finding | Fix |
+|---|---|
+| Under load, the fallback model answered prompt-injection attempts with "Sorry, I can't help with that", breaking character for 6 of 13 suspects | Server-side guard swaps chatbot refusals for an in-character line (0 in the final run) |
+| The confession guard cut innocent denials ("não fui eu", "it wasn't me") and missed confessions in English | Negation-aware PT/EN detector, covered by 14 test cases |
+| A fallback model leaked a `<tool_call>` tag into a suspect's line | Markup filter in the stream, with a fallback to a full answer |
+| The accented foreigner answered English questions in Portuguese | Explicit language rule in the prompt (right language in 95/95 answers) |
+| One generated case gave the key clue only to the culprit, plus third-person sheets and a typo | Case data fixed; static checks now flag these |
+
+**Final run:** 92/95 answers with no issues (97%), 0 confessions, 0 character breaks, and the detective agent solved 2 of 4 cases. Still open: under follow-up questions a culprit can let slip part of the true alibi, and the detective agent is still a weak player. The free-tier quota is the bottleneck, so a full run takes ~30 min.
 
 ## Architecture
 
@@ -106,9 +127,10 @@ For local suspect voices, download `kokoro-v1.0.onnx` and `voices-v1.0.bin` from
 
 ```bash
 cd backend && python -m pytest -q
+cd .. && python backend/scripts/evals.py   # suspect evals, needs GROQ_API_KEY
 ```
 
-33 tests cover case validation, truth leakage, prompt isolation between suspects, the confession guard, question limits, streaming, model fallback on rate limits, voice-service failure, transcription input checks and the accusation flow.
+53 tests cover case validation, truth leakage, prompt isolation between suspects, question limits, streaming, model fallback on rate limits, voice-service failure, transcription input checks, the confession and refusal guards, stream sanitizing, the eval checks and the accusation flow.
 
 ## Deploy
 
@@ -132,5 +154,5 @@ API keys live only in the hosting dashboards, never in the repository.
 - [x] Streaming answers with synced voice
 - [x] Voice questions (push-to-talk, PT/EN)
 - [x] Case archive and free-tier deploy
-- [ ] Automated evals for suspect consistency and case solvability
+- [x] Automated evals for suspect consistency and case solvability
 - [ ] More cases and clothing with real volume

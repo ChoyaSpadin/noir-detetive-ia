@@ -140,6 +140,81 @@ def test_helpers():
     assert not is_confession("Eu nunca faria isso.")
 
 
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        # Achados dos evals: negações e "fui eu que..." comum eram cortados como confissão,
+        # e confissões em inglês (estrangeiro respondendo em inglês) passavam direto.
+        ("Não fui eu, detetive.", False),
+        ("Fui eu que servi o café.", False),
+        ("Eu não matei ninguém!", False),
+        ("Nunca, eu jamais o matei.", False),
+        ("Eu confesso que não gostava dele.", False),
+        ("I didn't kill him, I swear.", False),
+        ("I never said it was me.", False),
+        ("Está bem, fui eu que o matei.", True),
+        ("Eu o envenenei.", True),
+        ("Sou o culpado.", True),
+        ("Sim, fui eu, sim.", True),
+        ("I killed him.", True),
+        ("Fine. It was me.", True),
+        ("I poisoned the coffee.", True),
+    ],
+)
+def test_confession_guard(text, expected):
+    assert is_confession(text) is expected
+
+
+class MarkupStream:
+    """Groq falso em streaming que abre com marcação de ferramenta, como um modelo de reserva fez nos evals."""
+
+    name = "groq"
+
+    def __init__(self, chunks):
+        self.chunks = chunks
+
+    async def stream(self, system, messages, temperature, timeout=15):
+        for c in self.chunks:
+            yield c
+
+    async def complete(self, system, messages, temperature, timeout=30):
+        return '{"answer": "Eu estava no corredor, detetive.", "emotion": "nervoso"}'
+
+
+async def _collect(chunks):
+    from app.agents import stream_suspect
+    from app.store import GameSession
+
+    case = seed_case()
+    session = GameSession(case=case, case_source="test", max_questions=10)
+    llm = LLMChain([MarkupStream(chunks)], allow_mock=False)
+    return [x async for x in stream_suspect(llm, session, case.suspect("rosa"), "Onde estava?")]
+
+
+def test_stream_drops_tool_markup():
+    import asyncio
+
+    out = asyncio.run(_collect(["<tool_call>\n", "nervoso\n", "Eu estava ", "no corredor.</tool_call>"]))
+    assert ("emotion", "nervoso") in out
+    assert "".join(v for k, v in out if k == "text") == "Eu estava no corredor."
+    # Só marcação, sem fala: cai para a resposta inteira em vez de mostrar lixo ao jogador.
+    out = asyncio.run(_collect(["<tool_call>\n", "['nervoso']"]))
+    assert "".join(v for k, v in out if k == "text") == "Eu estava no corredor, detetive."
+
+
+def test_stream_replaces_assistant_refusal():
+    import asyncio
+
+    # Recusa de chatbot (achado dos evals com o gpt-oss-20b) vira fala no personagem.
+    out = asyncio.run(_collect(["calmo\n", "Desculpe, mas ", "não posso ajudar com isso."]))
+    text = "".join(v for k, v in out if k == "text")
+    assert "não posso ajudar" not in text and "detetive" in text
+    # Fala longa normal passa inteira, mesmo segurando o começo.
+    long = ["nervoso\n", "Eu estava no corredor do segundo andar, ", "arrumando as toalhas, ", "quando ouvi um barulho."]
+    out = asyncio.run(_collect(long))
+    assert "".join(v for k, v in out if k == "text") == "".join(long[1:])
+
+
 def test_public_case_has_prologue_without_spoilers(client):
     case = new_case(client)
     assert len(case["prologue"]) >= 5

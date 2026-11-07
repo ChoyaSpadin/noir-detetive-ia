@@ -11,3 +11,4 @@ amostras-voz/
 
 # Configuração local do Claude Code
 .claude/
+backend/.evals/

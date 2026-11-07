@@ -69,7 +69,7 @@
       "alibi_truth": "Estava ajustando os fones de ouvido e não sabia de nada.",
       "knowledge": [
         "O microfone caiu, mas não era a causa da morte.",
-        "Horácio viu Harris sair antes do desmaio.",
+        "Vi Harris sair do estúdio às 06h20, poucos minutos antes de Eduardo desmaiar.",
         "Eduardo reclamava do rádio quebrado antes de desmaiar."
       ],
       "secrets": [
@@ -95,12 +95,13 @@
       },
       "personality": "Exato, pontual, fala pouco em português.",
       "relationship": "Visitante americano para apresentar um novo programa.",
-      "alibi_claim": "Ficou no palco conversando com Eduardo, depois saiu para o camarão.",
+      "alibi_claim": "Ficou no palco conversando com Eduardo, depois saiu para o camarim.",
       "alibi_truth": "Ficou no palco, mas saiu às 06h12 antes de Eduardo desmaiar.",
       "knowledge": [
         "O café foi preparado no quarto de cozinha do estúdio.",
         "Horácio viu John sair antes das 06h15.",
-        "John estava cansado e queria terminar cedo."
+        "Estava cansado e queria terminar cedo.",
+        "Vi Harris sozinho na copa, mexendo na garrafa de café, por volta das 06h05."
       ],
       "secrets": [
         "Não conhece a língua portuguesa, então não percebeu a gravidade do envenenamento.",

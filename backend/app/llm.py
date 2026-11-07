@@ -76,6 +76,7 @@ class GroqProvider:
     name: str = "groq"
     fallbacks: tuple[str, ...] = ()
     _cooldown: dict[str, float] = field(default_factory=dict)  # modelo -> até quando está no limite
+    last_model: str = ""  # modelo que respondeu por último (diagnóstico e evals)
 
     URL = "https://api.groq.com/openai/v1/chat/completions"
 
@@ -115,6 +116,7 @@ class GroqProvider:
                     self.URL, json=body, headers={"Authorization": f"Bearer {self.api_key}"}, timeout=timeout
                 )
                 r.raise_for_status()
+                self.last_model = model
                 return r.json()["choices"][0]["message"]["content"]
             except httpx.HTTPStatusError as exc:
                 if i == len(models) - 1 or not self._rate_limited(model, exc):
@@ -133,6 +135,7 @@ class GroqProvider:
                     if r.status_code == 429:
                         await r.aread()
                     r.raise_for_status()
+                    self.last_model = model
                     async for line in r.aiter_lines():
                         if not line.startswith("data: ") or line.strip() == "data: [DONE]":
                             continue
