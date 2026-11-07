@@ -100,7 +100,7 @@ Most of the interesting work came from making this fast and reliable without pay
 |---|---|
 | Groq free tier: ~8k tokens/min per model | On a 429, switches to the next model (gpt-oss-120b → Qwen 3.8 → gpt-oss-20b), each with its own quota, before falling back to Gemini or a rule-based offline mode |
 | Gemini TTS: 10 calls/day | One multi-speaker call per intro, split per line with Whisper word timestamps; library intros are pre-rendered MP3; Kokoro covers the rest |
-| Free API host has 512 MB and sleeps | The voice model runs on a separate scale-to-zero service; the site wakes the API on load while the player browses the archive |
+| Free API host has 512 MB and sleeps | The voice model runs on a separate scale-to-zero service; a scheduled GitHub Actions ping (every 10 min) keeps the API awake, and the site also wakes it on load |
 | Voice budget is $1/month | Max one container, 5 min idle shutdown, shared-key auth. If the voice service fails, answers continue as text only |
 | CPU speech synthesis is slow | Answers are chunked with growing sizes (28 → 42 → 75 → 110 chars) so the first sentence is ready in ~1.5 s and each next chunk renders while the previous one plays |
 | Whisper guesses the wrong language on short clips | The player picks PT/EN; forcing the wrong language would silently translate the question |
