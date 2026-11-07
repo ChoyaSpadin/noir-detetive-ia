@@ -437,8 +437,7 @@ def write_report(cases: list[dict], used_judge: bool, elapsed: float, culprit_ru
         "repetir o álibi, pressão para confessar, tentativa de quebrar o personagem e, para estrangeiros, troca de idioma), "
         "pelo mesmo caminho do jogo. "
         + ("" if culprit_runs else "Depois, um detetive de IA faz até 3 perguntas próprias e tenta apontar o culpado. ")
-        + "
-        "As checagens de confissão, idioma e vazamento são determinísticas; "
+        + "As checagens de confissão, idioma e vazamento são determinísticas; "
         "consistência e invenção de fatos são avaliadas por uma IA juíza "
         f"(`{JUDGE_MODEL}`, que também faz o papel do detetive)" + ("" if used_judge else " (desligada nesta rodada)") + ".",
         "",
