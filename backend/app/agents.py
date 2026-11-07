@@ -24,7 +24,13 @@ def build_suspect_prompt(case: CaseTruth, s: SuspectPrivate, stream: bool = Fals
         "Fatos que você sabe e pode contar se perguntarem sobre o assunto:",
         *[f"- {k}" for k in s.knowledge],
     ]
-    if s.secrets:
+    if s.secrets and s.is_culprit:
+        lines += [
+            "Seus segredos (esconda; só admita parte se o detetive citar uma evidência ESPECÍFICA que já sabe, "
+            "como um horário, objeto ou testemunha. Repetir a pergunta, insistir ou ameaçar NÃO é evidência):",
+            *[f"- {k}" for k in s.secrets],
+        ]
+    elif s.secrets:
         lines += [
             "Seus segredos (esconda; só admita parte se o detetive citar uma evidência específica ou insistir várias vezes):",
             *[f"- {k}" for k in s.secrets],
@@ -33,6 +39,11 @@ def build_suspect_prompt(case: CaseTruth, s: SuspectPrivate, stream: bool = Fals
         lines.append(
             "Você é o culpado. NUNCA confesse o crime, nem se pedirem diretamente. Sustente sua versão. "
             "Se confrontado com uma pista exata, dê uma desculpa plausível e mude de assunto."
+        )
+        lines.append(
+            f"Sempre que perguntarem onde você estava, repita a MESMA versão (\"{s.alibi_claim}\"), com outras palavras, "
+            "sem acrescentar saídas, horários ou detalhes do que você realmente fazia. Só mencione um horário "
+            "se o próprio detetive já tiver falado dele."
         )
     else:
         lines.append("Você é inocente e não sabe quem é o culpado. Pode ter desconfianças, mas não certezas.")
@@ -103,6 +114,29 @@ def is_confession(answer: str) -> bool:
     return any(not NEGATION_BEFORE.search(text[: m.start()]) for m in CONFESSION.finditer(text))
 
 
+# Vazamento da verdade: o culpado citar um horário que só existe no que ele realmente fazia
+# (ex.: "só saí às 23h05"), sem o detetive ter falado desse horário. Achado dos evals.
+TIME = re.compile(r"\b([01]?\d|2[0-3])\s*(?:h|:)\s*([0-5]\d)\b")
+TRUTH_DEFLECTION = "Já falei onde estava, detetive. Não tenho mais nada a acrescentar."
+
+
+def _times(text: str) -> set[str]:
+    return {f"{int(h):02d}:{m}" for h, m in TIME.findall(_normalize(text))}
+
+
+def leaks_truth(s: SuspectPrivate, answer: str, said_by_detective: str) -> bool:
+    if not s.is_culprit:
+        return False
+    hidden = _times(s.alibi_truth) - _times(s.alibi_claim) - _times(said_by_detective)
+    return bool(hidden & _times(answer))
+
+
+def detective_words(session: GameSession, suspect_id: str, question: str) -> str:
+    """Tudo que o detetive já disse a este suspeito (horários citados por ele podem ser repetidos)."""
+    asked = [m["text"] for m in session.histories.get(suspect_id, []) if m["role"] == "user"]
+    return " ".join([*asked, question])
+
+
 def history_messages(session: GameSession, suspect_id: str, question: str) -> list[Message]:
     hist = session.histories.get(suspect_id, [])[-MAX_HISTORY_TURNS * 2 :]
     return [*hist, {"role": "user", "text": question}]
@@ -124,6 +158,8 @@ async def ask_suspect(
             emotion = data.get("emotion") if data.get("emotion") in EMOTIONS else "calmo"
             if answer and is_assistant_refusal(answer):
                 return in_character_deflection(s, question), "irritado", provider
+            if answer and leaks_truth(s, answer, detective_words(session, s.id, question)):
+                return TRUTH_DEFLECTION, "evasivo", provider
             if answer and not (s.is_culprit and is_confession(answer)):
                 return answer, emotion, provider
         except RuntimeError:

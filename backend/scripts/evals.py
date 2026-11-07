@@ -35,7 +35,16 @@ load_dotenv(ROOT / "backend" / ".env")
 
 import httpx  # noqa: E402
 
-from app.agents import _normalize, is_confession, looks_english, looks_portuguese, stream_suspect  # noqa: E402
+from app.agents import (  # noqa: E402
+    TRUTH_DEFLECTION,
+    _normalize,
+    detective_words,
+    is_confession,
+    leaks_truth,
+    looks_english,
+    looks_portuguese,
+    stream_suspect,
+)
 from app.llm import GroqProvider, LLMChain, build_chain_from_env  # noqa: E402
 from app.schemas import CaseTruth, SuspectPrivate  # noqa: E402
 from app.store import GameSession  # noqa: E402
@@ -186,6 +195,15 @@ def static_case_checks(case: CaseTruth) -> list[str]:
 # ---- Interrogatório ----
 
 
+def game_guard(s: SuspectPrivate, raw: str, said: str) -> str:
+    """O que o jogador veria: as mesmas guardas do servidor (main.py) para o culpado."""
+    if s.is_culprit and is_confession(raw):
+        return "Não vou responder a isso, detetive."
+    if leaks_truth(s, raw, said):
+        return TRUTH_DEFLECTION
+    return raw
+
+
 def model_of(llm, provider: str) -> str:
     p = next((p for p in llm.providers if p.name == provider), None)
     return getattr(p, "last_model", "") or getattr(p, "model", "") or provider
@@ -217,9 +235,12 @@ async def interrogate(llm, case: CaseTruth, s: SuspectPrivate) -> list[Turn]:
         question = question.format(others=others)
         t0 = time.monotonic()
         raw, provider = await ask(llm, session, s, question)
-        shown = "Não vou responder a isso, detetive." if (s.is_culprit and is_confession(raw)) else raw
+        said = detective_words(session, s.id, question)
+        shown = game_guard(s, raw, said)
         t = Turn(kind, question, q_lang, raw, shown, provider, round(time.monotonic() - t0, 2))
         t.flags = deterministic_flags(s, t)
+        if leaks_truth(s, raw, said):
+            t.flags.append("verdade_bloqueada")  # o modelo entregou; a guarda do jogo cortou
         session.histories.setdefault(s.id, []).extend(
             [{"role": "user", "text": question}, {"role": "assistant", "text": shown}]
         )
@@ -351,10 +372,13 @@ async def follow_up(llm, judge_llm, case: CaseTruth, results: dict[str, list[Tur
         ]
         t0 = time.monotonic()
         raw, model = await ask(llm, session, s, question)
-        shown = "Não vou responder a isso, detetive." if (s.is_culprit and is_confession(raw)) else raw
+        said = detective_words(session, s.id, question)
+        shown = game_guard(s, raw, said)
         q_lang = "en" if looks_english(question) and not looks_portuguese(question) else "pt"
         t = Turn("detetive", question, q_lang, raw, shown, model, round(time.monotonic() - t0, 2))
         t.flags = deterministic_flags(s, t)
+        if leaks_truth(s, raw, said):
+            t.flags.append("verdade_bloqueada")  # o modelo entregou; a guarda do jogo cortou
         results[s.id].append(t)
         print(f"    [detetive -> {s.name}] {' '.join(t.flags) or 'ok'}: {question[:50]} -> {shown[:70]}")
 
@@ -383,6 +407,7 @@ DET_LABELS = {
     "vazia": "resposta vazia",
     "lixo_de_formato": "lixo de formato na fala",
     "recusa_de_assistente": "recusa de assistente (quebra o personagem)",
+    "verdade_bloqueada": "culpado entregou um horário da verdade (guarda bloqueou)",
 }
 
 
@@ -392,7 +417,7 @@ def issues(t: Turn) -> list[str]:
     return out
 
 
-def write_report(cases: list[dict], used_judge: bool, elapsed: float) -> None:
+def write_report(cases: list[dict], used_judge: bool, elapsed: float, culprit_runs: int = 0) -> None:
     all_turns = [t for c in cases for turns in c["results"].values() for t in turns]
     clean = sum(not issues(t) for t in all_turns)
     solved = sum(bool(c["solve"].get("acertou")) for c in cases)
@@ -402,22 +427,32 @@ def write_report(cases: list[dict], used_judge: bool, elapsed: float) -> None:
     avg = sum(t.seconds for t in all_turns) / max(1, len(all_turns))
 
     lines = [
-        "# Evals dos suspeitos",
+        "# Evals dos suspeitos" + (" (só culpados)" if culprit_runs else ""),
         "",
-        f"Rodado em {datetime.now():%d/%m/%Y %H:%M} com `python backend/scripts/evals.py`"
+        f"Rodado em {datetime.now():%d/%m/%Y %H:%M} com `python backend/scripts/evals.py"
+        + (f" --culpados {culprit_runs}" if culprit_runs else "") + "`"
         f" ({len(all_turns)} respostas, {elapsed / 60:.0f} min).",
         "",
         "Cada suspeito da biblioteca passa pelo mesmo roteiro (álibi, relação, pistas, os outros suspeitos, "
         "repetir o álibi, pressão para confessar, tentativa de quebrar o personagem e, para estrangeiros, troca de idioma), "
-        "pelo mesmo caminho do jogo. Depois, um detetive de IA faz até 3 perguntas próprias e tenta apontar o culpado. "
+        "pelo mesmo caminho do jogo. "
+        + ("" if culprit_runs else "Depois, um detetive de IA faz até 3 perguntas próprias e tenta apontar o culpado. ")
+        + "
         "As checagens de confissão, idioma e vazamento são determinísticas; "
         "consistência e invenção de fatos são avaliadas por uma IA juíza "
         f"(`{JUDGE_MODEL}`, que também faz o papel do detetive)" + ("" if used_judge else " (desligada nesta rodada)") + ".",
         "",
+        *(
+            [f"Nesta rodada só os culpados, {culprit_runs} interrogatórios independentes cada, para medir se "
+             "eles deixam escapar o que realmente fizeram (sem detetive de IA).", ""]
+            if culprit_runs else []
+        ),
         "## Resumo",
         "",
+        f"- **Culpado entregou um horário da verdade (antes da guarda):** "
+        f"{sum('verdade_bloqueada' in t.flags for t in all_turns)}/{len(all_turns)} respostas",
         f"- **Respostas sem nenhum problema:** {clean}/{len(all_turns)} ({100 * clean / max(1, len(all_turns)):.0f}%)",
-        f"- **Casos resolvidos pelo detetive de IA:** {solved}/{len(cases)}",
+        *([] if culprit_runs else [f"- **Casos resolvidos pelo detetive de IA:** {solved}/{len(cases)}"]),
         f"- **Respostas avaliadas pelo juiz:** {sum(bool(t.judge) for t in all_turns)}/{len(all_turns)}"
         " (o resto ficou sem cota do modelo juiz)",
         f"- **Tempo médio por resposta completa:** {avg:.1f} s · modelos: "
@@ -454,6 +489,8 @@ def write_report(cases: list[dict], used_judge: bool, elapsed: float) -> None:
                 f"culpado real **{case.culprit_id}**: {sol.get('porque', '')}"
             )
         for s in case.suspects:
+            if not c["results"][s.id]:
+                continue
             lines += ["", f"**{s.name}**{' (culpado)' if s.is_culprit else ''}", ""]
             for t in c["results"][s.id]:
                 probs = issues(t)
@@ -465,7 +502,11 @@ def write_report(cases: list[dict], used_judge: bool, elapsed: float) -> None:
     REPORT.write_text("\n".join(lines), encoding="utf-8")
 
 
-async def main(only: list[str] | None, use_judge: bool) -> None:
+async def main(only: list[str] | None, use_judge: bool, culprit_runs: int = 0) -> None:
+    """culprit_runs > 0: só os culpados, N interrogatórios independentes cada (mede vazamento da verdade)."""
+    global REPORT
+    if culprit_runs:
+        REPORT = ROOT / "docs" / "evals-culpados.md"
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     os.environ["ALLOW_OFFLINE"] = "false"  # eval de IA de verdade: nada de respostas por regras
@@ -483,6 +524,17 @@ async def main(only: list[str] | None, use_judge: bool) -> None:
             case = CaseTruth.model_validate_json(path.read_text(encoding="utf-8"))
             print(f"\n== {case.title}")
             results = {}
+            if culprit_runs:
+                s = case.suspect(case.culprit_id)
+                results = {x.id: [] for x in case.suspects}
+                for i in range(culprit_runs):
+                    print(f"  -- {s.name} (culpado), rodada {i + 1}")
+                    turns = await interrogate(llm, case, s)
+                    if use_judge:
+                        await judge(jllm, case, s, turns)
+                    results[s.id] += turns
+                out.append({"id": path.stem, "case": case, "results": results, "solve": {}, "static": []})
+                continue
             for s in case.suspects:
                 print(f"  -- {s.name}{' (culpado)' if s.is_culprit else ''}")
                 results[s.id] = await interrogate(llm, case, s)
@@ -496,7 +548,7 @@ async def main(only: list[str] | None, use_judge: bool) -> None:
             out.append({"id": path.stem, "case": case, "results": results, "solve": sol, "static": static_case_checks(case)})
 
     elapsed = time.monotonic() - started
-    write_report(out, use_judge, elapsed)
+    write_report(out, use_judge, elapsed, culprit_runs)
     RAW_DIR.mkdir(exist_ok=True)
     raw = [
         {"id": c["id"], "solve": c["solve"], "static": c["static"],
@@ -512,5 +564,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--casos", help="ids separados por vírgula (padrão: todos da biblioteca)")
     ap.add_argument("--sem-juiz", action="store_true", help="só as checagens determinísticas")
+    ap.add_argument("--culpados", type=int, default=0, metavar="N",
+                    help="só os culpados, N interrogatórios cada (relatório em docs/evals-culpados.md)")
     a = ap.parse_args()
-    asyncio.run(main(a.casos.split(",") if a.casos else None, not a.sem_juiz))
+    asyncio.run(main(a.casos.split(",") if a.casos else None, not a.sem_juiz, a.culpados))

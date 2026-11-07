@@ -12,7 +12,7 @@ Interrogate them by text or voice, catch the lie, accuse the killer.
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Python](https://img.shields.io/badge/Python_3.12-3776AB?logo=python&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-53_passing-2ea44f)
+![Tests](https://img.shields.io/badge/tests-54_passing-2ea44f)
 ![Cost](https://img.shields.io/badge/hosting-%240%2Fmonth-ffb257)
 
 <img src="docs/gameplay.gif" alt="Gameplay: case archive, cinematic intro, interrogation in Portuguese and in English" width="720">
@@ -61,8 +61,9 @@ What the first runs found, and what changed:
 | A fallback model leaked a `<tool_call>` tag into a suspect's line | Markup filter in the stream, with a fallback to a full answer |
 | The accented foreigner answered English questions in Portuguese | Explicit language rule in the prompt (right language in 95/95 answers) |
 | One generated case gave the key clue only to the culprit, plus third-person sheets and a typo | Case data fixed; static checks now flag these |
+| Asked to "repeat" their alibi, a culprit let slip the true time they left ("só saí às 23h05") | Prompt: only concrete evidence counts as pressure. Server-side guard cuts any time that exists only in the hidden truth, unless the detective already mentioned it (0/87 in a culprits-only run, [`docs/evals-culpados.md`](docs/evals-culpados.md)) |
 
-**Final run:** 92/95 answers with no issues (97%), 0 confessions, 0 character breaks, and the detective agent solved 2 of 4 cases. Still open: under follow-up questions a culprit can let slip part of the true alibi, and the detective agent is still a weak player. The free-tier quota is the bottleneck, so a full run takes ~30 min.
+**Final run:** 92/95 answers with no issues (97%), 0 confessions, 0 character breaks, and the detective agent solved 2 of 4 cases. Still open: the detective agent is still a weak player. The free-tier quota is the bottleneck, so a full run takes ~30 min.
 
 ## Architecture
 
@@ -128,9 +129,10 @@ For local suspect voices, download `kokoro-v1.0.onnx` and `voices-v1.0.bin` from
 ```bash
 cd backend && python -m pytest -q
 cd .. && python backend/scripts/evals.py   # suspect evals, needs GROQ_API_KEY
+python backend/scripts/evals.py --culpados 3   # culprits only, 3 runs each
 ```
 
-53 tests cover case validation, truth leakage, prompt isolation between suspects, question limits, streaming, model fallback on rate limits, voice-service failure, transcription input checks, the confession and refusal guards, stream sanitizing, the eval checks and the accusation flow.
+54 tests cover case validation, truth leakage, prompt isolation between suspects, question limits, streaming, model fallback on rate limits, voice-service failure, transcription input checks, the confession, refusal and truth-leak guards, stream sanitizing, the eval checks and the accusation flow.
 
 ## Deploy
 

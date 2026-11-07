@@ -14,7 +14,15 @@ from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from .agents import ask_suspect, is_confession, speech_language, stream_suspect
+from .agents import (
+    TRUTH_DEFLECTION,
+    ask_suspect,
+    detective_words,
+    is_confession,
+    leaks_truth,
+    speech_language,
+    stream_suspect,
+)
 from .cases import default_prologue, generate_case
 from .llm import LLMChain, build_chain_from_env
 from pydantic import BaseModel
@@ -380,6 +388,17 @@ async def interrogate_stream(case_id: str, req: InterrogateRequest) -> Streaming
         emotion = "calmo"
         provider = "offline"
         guard_tripped = False
+        said = detective_words(s, suspect.id, question)
+
+        def guard(before: str, piece: str) -> tuple[str, bool]:
+            """Culpado nunca confessa nem entrega o que realmente fazia: corta e desconversa."""
+            if not suspect.is_culprit:
+                return piece, False
+            if is_confession(before + " " + piece):
+                return "Não vou responder a isso, detetive.", True
+            if leaks_truth(suspect, before + " " + piece, said):
+                return TRUTH_DEFLECTION, True
+            return piece, False
 
         def piece_event(text: str) -> str:
             url = None
@@ -399,17 +418,18 @@ async def interrogate_stream(case_id: str, req: InterrogateRequest) -> Streaming
                     provider = value
                 elif kind == "text" and not guard_tripped:
                     for piece in chunker.feed(value):
-                        if suspect.is_culprit and is_confession(full + " " + piece):
-                            guard_tripped = True  # culpado nunca confessa: corta e desconversa
-                            piece = "Não vou responder a isso, detetive."
+                        piece, guard_tripped = guard(full, piece)
                         full = f"{full} {piece}".strip()
                         yield piece_event(piece)
                         if guard_tripped:
                             break
             if not guard_tripped:
                 for piece in chunker.flush():
+                    piece, guard_tripped = guard(full, piece)
                     full = f"{full} {piece}".strip()
                     yield piece_event(piece)
+                    if guard_tripped:
+                        break
         except RuntimeError:
             if not full:
                 s.questions_used -= 1

@@ -165,6 +165,20 @@ def test_confession_guard(text, expected):
     assert is_confession(text) is expected
 
 
+def test_truth_leak_guard():
+    from app.agents import leaks_truth
+
+    case = seed_case()
+    otavio, rosa = case.suspect("otavio"), case.suspect("rosa")  # verdade do Otávio: saiu às 23h05
+    # Achado dos evals: pressionado a "repetir", o culpado contou a hora em que saiu.
+    assert leaks_truth(otavio, "Fiquei no bar, e só saí às 23h05 para telefonar.", "Repita: onde estava?")
+    assert leaks_truth(otavio, "Saí às 23:05, mais nada.", "")
+    # Se o próprio detetive citou o horário, o culpado pode falar dele (para se explicar).
+    assert not leaks_truth(otavio, "Às 23h05? Fui telefonar para a esposa.", "Você saiu às 23h05, não saiu?")
+    assert not leaks_truth(otavio, "Fiquei no bar a noite toda.", "Onde estava?")
+    assert not leaks_truth(rosa, "Saí às 23h05.", "")  # só vale para o culpado
+
+
 class MarkupStream:
     """Groq falso em streaming que abre com marcação de ferramenta, como um modelo de reserva fez nos evals."""
 
