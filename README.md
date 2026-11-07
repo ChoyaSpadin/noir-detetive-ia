@@ -28,7 +28,7 @@ Interrogate them by text or voice, catch the lie, accuse the killer.
 - **Suspects are isolated agents.** Each one gets only its own memories, alibi and secrets, never the full truth or the other suspects' secrets. The culprit lies by design, and a server-side guard blocks confessions.
 - **Real-time answers.** The reply streams over SSE: text shows up in ~0.5 s and the suspect's voice starts in ~2 s. Each sentence is typed in sync with its own audio.
 - **Voice in, voice out.** Push-to-talk questions are transcribed by Whisper in the language the player picks (PT/EN). Answers are voiced by Kokoro-82M, with foreign accents and an English-only suspect.
-- **Cinematic intro from data.** Each case has a scripted prologue (camera shots, subtitles, narrator and police officer voices) generated together with the case.
+- **Cinematic intro from data.** Each case has a scripted prologue (camera shots, subtitles, narrator and police officer voices) generated together with the case. Narration uses Gemini TTS (two voices in one call), cut per line with Whisper.
 - **Built for $0.** Everything runs on free tiers with no credit card, and the game degrades gracefully when a quota runs out (see [Free-tier engineering](#free-tier-engineering)).
 
 | Case archive | Cinematic intro | Interrogation |
