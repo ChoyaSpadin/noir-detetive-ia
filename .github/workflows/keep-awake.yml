@@ -1,0 +1,20 @@
+# Mantém a API do Render (plano grátis) acordada: ele desliga após 15 min sem visitas,
+# e a primeira visita depois leva ~30-50 s. Um serviço ligado o mês todo (~744 h) cabe
+# nas 750 h grátis. Só bate no /api/health (leve, não chama IA nem a voz do Modal).
+# Obs.: o GitHub desativa agendamentos após 60 dias sem commits no repositório.
+name: keep-awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping API health
+        run: curl -fsS --retry 3 --retry-delay 20 --max-time 90 https://noir-detetive-ia-api.onrender.com/api/health
