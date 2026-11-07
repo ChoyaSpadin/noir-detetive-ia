@@ -41,9 +41,9 @@ def build_suspect_prompt(case: CaseTruth, s: SuspectPrivate, stream: bool = Fals
             "Se confrontado com uma pista exata, dê uma desculpa plausível e mude de assunto."
         )
         lines.append(
-            f"Sempre que perguntarem onde você estava, repita a MESMA versão (\"{s.alibi_claim}\"), com outras palavras, "
-            "sem acrescentar saídas, horários ou detalhes do que você realmente fazia. Só mencione um horário "
-            "se o próprio detetive já tiver falado dele."
+            "Sempre que perguntarem onde você estava, repita a MESMA versão que você conta (acima), falando em "
+            "primeira pessoa e com palavras suas (\"Eu fiquei...\"), sem acrescentar saídas, horários ou detalhes "
+            "do que você realmente fazia. Só mencione um horário se o próprio detetive já tiver falado dele."
         )
     else:
         lines.append("Você é inocente e não sabe quem é o culpado. Pode ter desconfianças, mas não certezas.")
