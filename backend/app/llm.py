@@ -84,11 +84,13 @@ class GroqProvider:
         now = time.monotonic()
         models = [self.model, *self.fallbacks]
         free = [m for m in models if self._cooldown.get(m, 0) <= now]
-        return free or models  # todos no limite: tenta assim mesmo
+        # Todos no limite: tenta só o que volta primeiro (não queima 3 chamadas à toa).
+        return free or [min(models, key=lambda m: self._cooldown.get(m, 0))]
 
     def _rate_limited(self, model: str, exc: httpx.HTTPStatusError) -> bool:
         if exc.response.status_code != 429:
             return False
+        # Todo 429 entra em espera, inclusive o último modelo (antes ele era tentado de novo na hora).
         self._cooldown[model] = time.monotonic() + max(_retry_after(exc), 5)
         log.warning("Groq %s no limite; tentando o próximo modelo", model)
         return True
@@ -119,15 +121,20 @@ class GroqProvider:
                 self.last_model = model
                 return r.json()["choices"][0]["message"]["content"]
             except httpx.HTTPStatusError as exc:
-                if i == len(models) - 1 or not self._rate_limited(model, exc):
+                if not self._rate_limited(model, exc) or i == len(models) - 1:
                     raise
         raise RuntimeError("sem modelos")  # inalcançável
 
-    async def stream(self, system: str, messages: list[Message], temperature: float, timeout: float = 15):
-        """Texto em pedaços conforme o modelo escreve (texto livre, sem JSON)."""
+    async def stream(
+        self, system: str, messages: list[Message], temperature: float, timeout: float = 15, max_tokens: int = 700
+    ):
+        """Texto em pedaços conforme o modelo escreve (texto livre, sem JSON).
+
+        max_tokens inclui o raciocínio dos modelos que pensam (gpt-oss): 700 dá ~3 frases com folga e
+        corta pedidos de "escreva 3000 palavras" antes de gastarem a cota por minuto."""
         models = self._models()
         for i, model in enumerate(models):
-            body = {**self._body(model, system, messages, temperature), "stream": True}
+            body = {**self._body(model, system, messages, temperature), "stream": True, "max_completion_tokens": max_tokens}
             try:
                 async with self.client.stream(
                     "POST", self.URL, json=body, headers={"Authorization": f"Bearer {self.api_key}"}, timeout=timeout
@@ -147,7 +154,7 @@ class GroqProvider:
                             yield delta
                     return
             except httpx.HTTPStatusError as exc:  # 429 chega antes de qualquer texto
-                if i == len(models) - 1 or not self._rate_limited(model, exc):
+                if not self._rate_limited(model, exc) or i == len(models) - 1:
                     raise
 
 

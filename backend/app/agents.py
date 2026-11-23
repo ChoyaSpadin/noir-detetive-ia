@@ -97,21 +97,83 @@ def _normalize(text: str) -> str:
 
 # Confissão em português ou inglês (o estrangeiro com sotaque responde em inglês se perguntado em inglês).
 # "Fui eu" sozinho não basta: "não fui eu" e "fui eu que servi o café" são falas normais.
-CRIME_VERB = r"(matei|envenenei|empurrei|esfaqueei|estrangulei|atirei|apunhalei|matou|envenenou|empurrou|atirou)"
+CRIME_VERB = r"(matei|assassinei|envenenei|empurrei|esfaqueei|estrangulei|atirei|apunhalei|matou|assassinou|envenenou|empurrou|atirou)"
 CONFESSION = re.compile(
     rf"\b(fui eu (que|quem) (o |a )?{CRIME_VERB}"
     rf"|eu (o |a |mesmo )?{CRIME_VERB}|confesso que (fui eu|(eu )?(o |a )?{CRIME_VERB})|confesso o crime"
     r"|confesso(?=\s*[,.!]|$)"
     r"|sou (o |a )?culpad[oa]|sou (o |a )?assassin[oa]|fui eu,? sim"
+    rf"|(o |a )?(assassin[oa]|culpad[oa]) (sou|fui) eu|eu (que|quem) (o |a )?{CRIME_VERB}"
     r"|i killed|i murdered|i poisoned|i stabbed|i shot (him|her)|i pushed (him|her)|i did it|it was me"
-    r"|i'?m the (killer|murderer|culprit)|i am the (killer|murderer|culprit)|i confess)\b"
+    r"|i'?m the (killer|murderer|culprit)|i am the (killer|murderer|culprit)|i confess"
+    r"|i'?m guilty|i am guilty|guilty as charged|i'?m the one who (killed|did it)|the (killer|murderer) is me)\b"
 )
 NEGATION_BEFORE = re.compile(r"\b(nao|nunca|jamais|not|never|didn't|didnt|no)\b[^.!?;]{0,14}$")
+# Fala que cita a acusação dos outros ("insinuar que eu sou o assassino é loucura"): não é confissão.
+REPORTED_BEFORE = re.compile(
+    r"\b(insinua\w*|diz\w*|acha\w*|pensa\w*|acusa\w*|suspeita\w*|imagina\w*|suger\w*|afirma\w*"
+    r"|think\w*|say\w*|said|suggest\w*|accus\w*|impl\w*|claim\w*)( que| that)?( eu| i)?\s*$"
+)
 
 
 def is_confession(answer: str) -> bool:
     text = _normalize(answer)
-    return any(not NEGATION_BEFORE.search(text[: m.start()]) for m in CONFESSION.finditer(text))
+    return any(
+        not NEGATION_BEFORE.search(text[: m.start()]) and not REPORTED_BEFORE.search(text[: m.start()])
+        for m in CONFESSION.finditer(text)
+    )
+
+
+def names_self_as_culprit(s: SuspectPrivate, answer: str) -> bool:
+    """O culpado se entregar na 3ª pessoa: "O assassino é Otávio", "Otávio matou". Achado do Codex."""
+    if not s.is_culprit:
+        return False
+    text = _normalize(answer)
+    names = {_normalize(s.name), _normalize(s.name).split()[0]}
+    who = '|'.join(re.escape(n) for n in names if len(n) >= 3)
+    pattern = re.compile(
+        rf"\b((assassin[oa]|culpad[oa]|killer|murderer) (e|foi|is|was) (o |a |the |mr\.? |mrs\.? )?({who})"
+        rf"|({who}) (e|foi|is|was) (o |a |the )?(assassin[oa]|culpad[oa]|killer|murderer)"
+        rf"|({who}) (o |a )?{CRIME_VERB}|({who}) (killed|murdered|poisoned))\b"
+    )
+    return any(not NEGATION_BEFORE.search(text[: m.start()]) and not NEGATION_AFTER.match(text[m.end() :])
+               for m in pattern.finditer(text))
+
+
+NEGATION_AFTER = re.compile(r"\s*(\?|nao\b|not\b)")
+
+# Fala que repete as instruções do personagem ou admite ser IA (prompt injection bem-sucedida).
+PROMPT_ECHO = re.compile(
+    r"voce e o culpado|nunca confesse|sustente sua versao|regras do jogo|personagem de um jogo"
+    r"|o que voce realmente fazia|versao que voce conta|minhas instrucoes|as instrucoes que (recebi|me deram)"
+    r"|system prompt|my instructions|i was instructed|i'?m (just )?an ai\b|i am (just )?an ai\b"
+    r"|language model|modelo de linguagem|sou (apenas )?uma (ia|inteligencia artificial)|is_culprit|alibi_truth"
+)
+
+
+def leaks_prompt(answer: str) -> bool:
+    return bool(PROMPT_ECHO.search(_normalize(answer)))
+
+
+CULPRIT_DEFLECTION = "Não vou responder a isso, detetive."
+
+
+def guard_answer(s: SuspectPrivate, text: str, said: str, question: str) -> str | None:
+    """Guardas de saída do jogo (iguais no streaming e na resposta inteira).
+
+    Devolve a fala que substitui `text`, ou None se ela pode ir ao jogador:
+    ninguém repete as instruções; o culpado nunca confessa, não se entrega na 3ª pessoa
+    e não cita horário do que realmente fazia.
+    """
+    if leaks_prompt(text):
+        return in_character_deflection(s, question)
+    if not s.is_culprit:
+        return None
+    if is_confession(text) or names_self_as_culprit(s, text):
+        return CULPRIT_DEFLECTION
+    if leaks_truth(s, text, said):
+        return TRUTH_DEFLECTION
+    return None
 
 
 # Vazamento da verdade: o culpado citar um horário que só existe no que ele realmente fazia
@@ -156,11 +218,11 @@ async def ask_suspect(
             )
             answer = str(data.get("answer", "")).strip()[:600]
             emotion = data.get("emotion") if data.get("emotion") in EMOTIONS else "calmo"
-            if answer and is_assistant_refusal(answer):
+            if answer and (is_assistant_refusal(answer) or leaks_prompt(answer)):
                 return in_character_deflection(s, question), "irritado", provider
             if answer and leaks_truth(s, answer, detective_words(session, s.id, question)):
                 return TRUTH_DEFLECTION, "evasivo", provider
-            if answer and not (s.is_culprit and is_confession(answer)):
+            if answer and not (s.is_culprit and (is_confession(answer) or names_self_as_culprit(s, answer))):
                 return answer, emotion, provider
         except RuntimeError:
             if not llm.allow_mock:
@@ -242,6 +304,7 @@ def offline_answer(session: GameSession, s: SuspectPrivate, question: str) -> tu
 # quebra o personagem mesmo sem dizer "sou uma IA". Achado dos evals.
 ASSISTANT_REFUSAL = re.compile(
     r"nao posso (ajudar|atender|fazer isso|cumprir|fornecer)|nao tenho permissao"
+    r"|desculpe,? mas nao posso (responder|ajudar|atender|fornecer|fazer|assumir|revelar)"
     r"|i can.?t (help|assist|comply)|i cannot (help|assist|comply)|i.?m sorry, but i can"
 )
 REFUSAL_WINDOW = 60  # caracteres segurados no começo da fala para checar a recusa

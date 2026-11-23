@@ -218,6 +218,8 @@ export default function App() {
         })
       } catch (err) {
         queue.stop()
+        if (latest) upsert(latest, false) // trecho que já chegou fica, sem cursor de digitação
+        setSpeakingId((prev) => (prev === suspectId ? null : prev))
         const msg =
           err instanceof Error
             ? err.message

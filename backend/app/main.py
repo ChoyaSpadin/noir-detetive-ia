@@ -10,16 +10,14 @@ from contextlib import asynccontextmanager
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from .agents import (
-    TRUTH_DEFLECTION,
     ask_suspect,
     detective_words,
-    is_confession,
-    leaks_truth,
+    guard_answer,
     speech_language,
     stream_suspect,
 )
@@ -36,6 +34,7 @@ from .schemas import (
     PublicCase,
     PublicSuspect,
 )
+from .limits import RateLimiter, client_ip
 from .store import GameSession, SessionStore
 from .kokoro_voice import KokoroVoice, RemoteKokoro, voice_for
 from .tts import TTS, WHISPER_MODEL
@@ -46,6 +45,11 @@ MAX_QUESTIONS = int(os.getenv("MAX_QUESTIONS", "25"))
 CASE_POOL = int(os.getenv("CASE_POOL", "1"))
 # A fila só gera o próximo caso com o jogador parado (não disputa limite de API nem CPU no jogo).
 POOL_QUIET_S = float(os.getenv("POOL_QUIET_S", "60"))
+# Teto da fala no streaming: o prompt pede 1 a 3 frases; acima disso é abuso ("escreva 3000 palavras")
+# e cada trecho vira voz paga no Modal.
+MAX_ANSWER_CHARS = int(os.getenv("MAX_ANSWER_CHARS", "520"))
+# Diagnóstico do microfone (salvar a última gravação e logar a transcrição): só local, nunca no ar.
+DEBUG_MIC = os.getenv("DEBUG_MIC", "").lower() in ("1", "true")
 log = logging.getLogger(__name__)
 
 
@@ -101,6 +105,8 @@ async def lifespan(app: FastAPI):
         app.state.http = client
         app.state.library = load_library()
         app.state.store = SessionStore()
+        if not hasattr(app.state, "limiter"):  # testes podem injetar outro
+            app.state.limiter = RateLimiter()
         # Testes desligam a voz (TTS_DISABLED) para não chamar a API de verdade.
         key = None if os.getenv("TTS_DISABLED") else os.getenv("GEMINI_API_KEY")
         # No ar: voz no serviço do Modal (KOKORO_URL). Local: modelo no próprio PC.
@@ -142,6 +148,17 @@ def _llm() -> LLMChain:
 
 def _store() -> SessionStore:
     return app.state.store
+
+
+def _limit(action: str, request: Request) -> None:
+    app.state.limiter.check(action, client_ip(request))
+
+
+def release_old_voice(s: GameSession) -> None:
+    """Solta o áudio das respostas anteriores (já tocadas): a RAM do servidor grátis é de 512 MB."""
+    for i, fut in enumerate(s.voice_jobs):
+        if fut is not None and fut.done():
+            s.voice_jobs[i] = None
 
 
 def _session(case_id: str) -> GameSession:
@@ -192,13 +209,15 @@ class NewCaseRequest(BaseModel):
 
 
 @app.post("/api/cases", response_model=PublicCase)
-async def new_case(req: NewCaseRequest | None = None) -> PublicCase:
+async def new_case(request: Request, req: NewCaseRequest | None = None) -> PublicCase:
     library: dict[str, CaseTruth] = app.state.library
     if req and req.library_id:
         if req.library_id not in library:
             raise HTTPException(404, "Caso não encontrado no arquivo.")
+        _limit("case_library", request)
         case, source = library[req.library_id].model_copy(deep=True), "biblioteca"
     else:
+        _limit("case_ai", request)
         ready = app.state.pool.take()
         case, source = ready if ready else await generate_case(_llm())
     session = GameSession(case=case, case_source=source, max_questions=MAX_QUESTIONS)
@@ -229,7 +248,7 @@ async def prologue_audio(case_id: str, line: int) -> Response:
 
 
 @app.post("/api/cases/{case_id}/interrogate", response_model=InterrogateResponse)
-async def interrogate(case_id: str, req: InterrogateRequest) -> InterrogateResponse:
+async def interrogate(case_id: str, req: InterrogateRequest, request: Request) -> InterrogateResponse:
     s = _session(case_id)
     if s.finished:
         raise HTTPException(409, "Este caso já foi encerrado.")
@@ -239,12 +258,15 @@ async def interrogate(case_id: str, req: InterrogateRequest) -> InterrogateRespo
     if not suspect:
         raise HTTPException(400, "Suspeito inválido.")
     question = req.question.strip()
+    _limit("question", request)
     app.state.last_activity = time.time()
+    s.questions_used += 1  # reserva já: duas perguntas ao mesmo tempo não passam do limite
+    release_old_voice(s)
     try:
         answer, emotion, provider = await ask_suspect(_llm(), s, suspect, question)
     except RuntimeError:
+        s.questions_used -= 1
         raise HTTPException(503, "Os suspeitos estão em silêncio (IA indisponível). Tente de novo.")
-    s.questions_used += 1
     s.histories.setdefault(suspect.id, []).extend(
         [{"role": "user", "text": question}, {"role": "assistant", "text": answer}]
     )
@@ -335,7 +357,7 @@ class Chunker:
 
 
 @app.post("/api/cases/{case_id}/interrogate/stream")
-async def interrogate_stream(case_id: str, req: InterrogateRequest) -> StreamingResponse:
+async def interrogate_stream(case_id: str, req: InterrogateRequest, request: Request) -> StreamingResponse:
     """Interrogatório em tempo real (Server-Sent Events).
 
     Eventos: emotion -> piece (texto + url da voz daquele trecho)... -> done.
@@ -350,8 +372,10 @@ async def interrogate_stream(case_id: str, req: InterrogateRequest) -> Streaming
     if not suspect:
         raise HTTPException(400, "Suspeito inválido.")
     question = req.question.strip()
+    _limit("question", request)
     app.state.last_activity = time.time()
     s.questions_used += 1  # conta já: evita duas perguntas ao mesmo tempo passarem do limite
+    release_old_voice(s)
 
     female = suspect.look.gender == "feminino"
     same = [x for x in s.case.suspects if not x.nationality and (x.look.gender == "feminino") == female]
@@ -391,14 +415,9 @@ async def interrogate_stream(case_id: str, req: InterrogateRequest) -> Streaming
         said = detective_words(s, suspect.id, question)
 
         def guard(before: str, piece: str) -> tuple[str, bool]:
-            """Culpado nunca confessa nem entrega o que realmente fazia: corta e desconversa."""
-            if not suspect.is_culprit:
-                return piece, False
-            if is_confession(before + " " + piece):
-                return "Não vou responder a isso, detetive.", True
-            if leaks_truth(suspect, before + " " + piece, said):
-                return TRUTH_DEFLECTION, True
-            return piece, False
+            """Ninguém repete as instruções; o culpado nunca confessa nem entrega o que fazia."""
+            swap = guard_answer(suspect, before + " " + piece, said, question)
+            return (swap, True) if swap else (piece, False)
 
         def piece_event(text: str) -> str:
             url = None
@@ -409,6 +428,7 @@ async def interrogate_stream(case_id: str, req: InterrogateRequest) -> Streaming
                 url = f"/api/cases/{s.id}/voice/{len(s.voice_jobs) - 1}"
             return event({"type": "piece", "text": text, "audio_url": url})
 
+        completed = False
         try:
             async for kind, value in stream_suspect(_llm(), s, suspect, question):
                 if kind == "emotion":
@@ -423,6 +443,9 @@ async def interrogate_stream(case_id: str, req: InterrogateRequest) -> Streaming
                         yield piece_event(piece)
                         if guard_tripped:
                             break
+                    if len(full) >= MAX_ANSWER_CHARS:
+                        guard_tripped = True  # fala longa demais: para aqui (texto e voz)
+                        break
             if not guard_tripped:
                 for piece in chunker.flush():
                     piece, guard_tripped = guard(full, piece)
@@ -430,13 +453,21 @@ async def interrogate_stream(case_id: str, req: InterrogateRequest) -> Streaming
                     yield piece_event(piece)
                     if guard_tripped:
                         break
+            completed = True
         except RuntimeError:
+            completed = True
             if not full:
                 s.questions_used -= 1
                 yield event({"type": "error", "detail": "Os suspeitos estão em silêncio (IA indisponível)."})
                 return
         finally:
             voice_queue.put_nowait(None)
+            if not completed and worker is not None:
+                # O jogador saiu no meio (aba fechada, 4G caiu): não gasta voz paga com o resto.
+                worker.cancel()
+                for fut in s.voice_jobs:
+                    if fut is not None and not fut.done():
+                        fut.set_result(None)
         s.histories.setdefault(suspect.id, []).extend(
             [{"role": "user", "text": question}, {"role": "assistant", "text": full}]
         )
@@ -488,7 +519,7 @@ def split_sentences(text: str, min_len: int = 28, max_len: int = 70) -> list[str
 @app.get("/api/cases/{case_id}/voice/{n}")
 async def answer_voice(case_id: str, n: int) -> Response:
     s = _session(case_id)
-    if not 0 <= n < len(s.voice_jobs):
+    if not 0 <= n < len(s.voice_jobs) or s.voice_jobs[n] is None:
         raise HTTPException(404, "Fala inexistente.")
     audio = await asyncio.shield(s.voice_jobs[n])
     if not audio:
@@ -533,7 +564,9 @@ async def _whisper(key: str, data: bytes, filename: str, content_type: str, lang
 
 
 @app.post("/api/cases/{case_id}/transcribe")
-async def transcribe_question(case_id: str, audio: UploadFile = File(...), language: str = Form("pt")) -> dict:
+async def transcribe_question(
+    case_id: str, request: Request, audio: UploadFile = File(...), language: str = Form("pt")
+) -> dict:
     """Pergunta falada -> texto (Whisper do Groq), no idioma que o jogador escolheu (pt ou en).
 
     O idioma vem do jogador porque não dá para adivinhar: a detecção automática erra em frase
@@ -541,6 +574,7 @@ async def transcribe_question(case_id: str, audio: UploadFile = File(...), langu
     (com notas de confiança quase iguais). Sem "prompt" de dica: com silêncio ele repete a dica.
     """
     _session(case_id)
+    _limit("transcribe", request)
     key = os.getenv("GROQ_API_KEY")
     if not key:
         raise HTTPException(503, "Reconhecimento de voz indisponível. Digite a pergunta.")
@@ -551,11 +585,12 @@ async def transcribe_question(case_id: str, audio: UploadFile = File(...), langu
         raise HTTPException(422, "Não ouvi nada. Segure o botão enquanto fala.")
     filename = audio.filename or "pergunta.webm"
     content_type = audio.content_type or "audio/webm"
-    try:
-        MIC_DEBUG_DIR.mkdir(parents=True, exist_ok=True)
-        (MIC_DEBUG_DIR / ("ultima" + Path(filename).suffix)).write_bytes(data)
-    except OSError:
-        pass
+    if DEBUG_MIC:
+        try:
+            MIC_DEBUG_DIR.mkdir(parents=True, exist_ok=True)
+            (MIC_DEBUG_DIR / ("ultima" + Path(filename).suffix)).write_bytes(data)
+        except OSError:
+            pass
     lang = "en" if language == "en" else "pt"
     try:
         best = await _whisper(key, data, filename, content_type, lang)
@@ -563,7 +598,8 @@ async def transcribe_question(case_id: str, audio: UploadFile = File(...), langu
         log.warning("Transcrição falhou: %s", exc)
         raise HTTPException(502, "Não consegui entender o áudio agora. Tente de novo ou digite.")
     text = str(best.get("text", "")).strip()
-    log.warning("Transcrição (%d bytes, %s, %s, lp=%.2f): %r", len(data), filename, lang, best["_logprob"], text[:120])
+    if DEBUG_MIC:
+        log.warning("Transcrição (%d bytes, %s, %s, lp=%.2f): %r", len(data), filename, lang, best["_logprob"], text[:120])
     if _is_junk(text) or best["_no_speech"] > 0.8:
         raise HTTPException(422, "Não ouvi sua voz. Confira o microfone e fale perto dele.")
     return {"text": text[:260]}

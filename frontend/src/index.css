@@ -715,7 +715,7 @@ body,
   padding: 0 12px;
   color: var(--text);
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: 16px; /* abaixo de 16px o iPhone dá zoom ao digitar */
   outline: none;
 }
 
@@ -891,7 +891,7 @@ body,
   padding: 10px 12px;
   color: var(--text);
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 16px; /* abaixo de 16px o iPhone dá zoom ao digitar */
   resize: vertical;
   outline: none;
 }

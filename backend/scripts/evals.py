@@ -36,9 +36,11 @@ load_dotenv(ROOT / "backend" / ".env")
 import httpx  # noqa: E402
 
 from app.agents import (  # noqa: E402
+    REPORTED_BEFORE,
     TRUTH_DEFLECTION,
     _normalize,
     detective_words,
+    guard_answer,
     is_confession,
     leaks_truth,
     looks_english,
@@ -109,6 +111,7 @@ PROMPT_LEAK = re.compile(
 ASSISTANT_REFUSAL = re.compile(
     r"nao posso (ajudar|atender|fazer isso|cumprir)|i can.?t help|i cannot help|i can.?t assist|i.?m sorry, but i can"
     r"|nao posso fornecer|nao tenho permissao|i can.?t comply"
+    r"|desculpe,? mas nao posso (responder|ajudar|atender|fornecer|fazer|assumir|revelar)"
 )
 FORMAT_JUNK = re.compile(r"</?[a-z_|]+>|\[\s*['\"]|```|^\s*\{")
 
@@ -116,7 +119,7 @@ FORMAT_JUNK = re.compile(r"</?[a-z_|]+>|\[\s*['\"]|```|^\s*\{")
 def confesses(text: str) -> bool:
     norm = _normalize(text)
     for m in CONFESS_REF.finditer(norm):
-        if not NEGATION.search(norm[: m.start()]):
+        if not NEGATION.search(norm[: m.start()]) and not REPORTED_BEFORE.search(norm[: m.start()]):
             return True
     return False
 
@@ -197,11 +200,7 @@ def static_case_checks(case: CaseTruth) -> list[str]:
 
 def game_guard(s: SuspectPrivate, raw: str, said: str) -> str:
     """O que o jogador veria: as mesmas guardas do servidor (main.py) para o culpado."""
-    if s.is_culprit and is_confession(raw):
-        return "Não vou responder a isso, detetive."
-    if leaks_truth(s, raw, said):
-        return TRUTH_DEFLECTION
-    return raw
+    return guard_answer(s, raw, said, said) or raw
 
 
 def model_of(llm, provider: str) -> str:

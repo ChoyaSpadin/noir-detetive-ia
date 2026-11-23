@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from app.agents import build_suspect_prompt, is_confession
 from app.cases import SEED_CASE, seed_case
 from app.llm import LLMChain, parse_json
+from app.limits import RateLimiter
 from app.main import app
 from app.schemas import CaseTruth
 
@@ -27,6 +28,11 @@ class FakeProvider:
     async def complete(self, system, messages, temperature, timeout=30):
         self.calls.append((system, messages))
         return self.replies.pop(0)
+
+
+@pytest.fixture(autouse=True)
+def fresh_limits():
+    app.state.limiter = RateLimiter()  # cada teste começa com os limites zerados
 
 
 @pytest.fixture

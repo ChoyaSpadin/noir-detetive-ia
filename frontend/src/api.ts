@@ -122,6 +122,7 @@ async function interrogateStream(
     throw new Error(detail)
   }
   const reader = res.body.getReader()
+  let sawDone = false
   const decoder = new TextDecoder()
   let buf = ''
   for (;;) {
@@ -136,11 +137,14 @@ async function interrogateStream(
         if (!line.startsWith('data: ')) continue
         const ev = JSON.parse(line.slice(6)) as StreamEvent
         if (ev.type === 'error') throw new Error(ev.detail)
+        if (ev.type === 'done') sawDone = true
         onEvent(ev)
       }
       sep = buf.indexOf('\n\n')
     }
   }
+  // Conexão caiu no meio (4G, servidor reiniciou): sem isso o chat ficava preso esperando.
+  if (!sawDone) throw new Error('a conexão caiu no meio da resposta')
 }
 
 /** Pergunta falada -> texto (o backend usa o Whisper; entende português e inglês). */

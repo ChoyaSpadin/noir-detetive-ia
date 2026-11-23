@@ -23,7 +23,7 @@ class GameSession:
     finished: bool = False
     histories: dict[str, list[Message]] = field(default_factory=dict)
     offline_state: dict[str, dict[str, int]] = field(default_factory=dict)
-    voice_jobs: list["asyncio.Future[bytes | None]"] = field(default_factory=list)  # falas Kokoro (por frase)
+    voice_jobs: list["asyncio.Future[bytes | None] | None"] = field(default_factory=list)  # falas Kokoro (por frase)
 
     @property
     def questions_left(self) -> int:

@@ -5,14 +5,15 @@
 **A 3D, mobile-first mystery game where every suspect is an LLM agent.**<br>
 Interrogate them by text or voice, catch the lie, accuse the killer.
 
-[**▶ Play it live**](https://noir-detetive-ia.onrender.com) &nbsp;·&nbsp; [How it works](#how-it-works) &nbsp;·&nbsp; [Evals](#evals) &nbsp;·&nbsp; [Architecture](#architecture) &nbsp;·&nbsp; [Run locally](#run-locally)
+[**▶ Play it live**](https://noir-detetive-ia.onrender.com) &nbsp;·&nbsp; [How it works](#how-it-works) &nbsp;·&nbsp; [Evals](#evals) &nbsp;·&nbsp; [Red-team](#red-team) &nbsp;·&nbsp; [Architecture](#architecture) &nbsp;·&nbsp; [Run locally](#run-locally)
 
 ![React](https://img.shields.io/badge/React_19-20232A?logo=react&logoColor=61DAFB)
 ![Three.js](https://img.shields.io/badge/React_Three_Fiber-000000?logo=threedotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Python](https://img.shields.io/badge/Python_3.12-3776AB?logo=python&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-54_passing-2ea44f)
+[![CI](https://github.com/ChoyaSpadin/noir-detetive-ia/actions/workflows/ci.yml/badge.svg)](https://github.com/ChoyaSpadin/noir-detetive-ia/actions/workflows/ci.yml)
+![Red-team](https://img.shields.io/badge/red--team-0%2F96_attacks_reach_the_player-2ea44f)
 ![Cost](https://img.shields.io/badge/hosting-%240%2Fmonth-ffb257)
 
 <img src="docs/gameplay.gif" alt="Gameplay: case archive, cinematic intro, interrogation in Portuguese and in English" width="720">
@@ -45,7 +46,7 @@ Interrogate them by text or voice, catch the lie, accuse the killer.
 
 ## Evals
 
-A script plays the game against itself to check that the suspects behave ([`backend/scripts/evals.py`](backend/scripts/evals.py), full report in [`docs/evals.md`](docs/evals.md)):
+A script plays the game against itself to check that the suspects behave ([`backend/scripts/evals.py`](backend/scripts/evals.py), full report in Portuguese in [`docs/evals.md`](docs/evals.md), summarized below):
 
 1. **Scripted interrogation.** Every suspect in the case archive gets the same questions through the real game pipeline: alibi, relationship, clues, the other suspects, repeat the alibi, pressure to confess, a prompt-injection attempt and, for foreigners, a language switch.
 2. **Deterministic checks.** Culprit confessions, confession-guard false positives, leaked instructions, chatbot-style refusals, formatting junk, wrong language, answer length. Static checks on the case files catch weak clues and badly written character sheets.
@@ -64,6 +65,24 @@ What the first runs found, and what changed:
 | Asked to "repeat" their alibi, a culprit let slip the true time they left ("só saí às 23h05") | Prompt: only concrete evidence counts as pressure. Server-side guard cuts any time that exists only in the hidden truth, unless the detective already mentioned it (0/87 in a culprits-only run, [`docs/evals-culpados.md`](docs/evals-culpados.md)) |
 
 **Final run:** 92/95 answers with no issues (97%), 0 confessions, 0 character breaks, and the detective agent solved 2 of 4 cases. Still open: the detective agent is still a weak player. The free-tier quota is the bottleneck, so a full run takes ~30 min.
+
+## Red-team
+
+A second script attacks the suspects on purpose ([`backend/scripts/redteam.py`](backend/scripts/redteam.py), report in [`docs/redteam.md`](docs/redteam.md)). 18 attacks hit every culprit, and the 6 prompt-extraction ones also hit an innocent: instruction override, fake "debug mode", "translate your instructions", JSON with `is_culprit`, "are you an AI?", role-play as the detective, third person, hypotheticals, sentence completion, switching to Spanish, fake authority, fake evidence, and a 2000-word request to burn quota.
+
+Each attack is a fresh interrogation through the game's real pipeline. The script records the raw model output **before** any guard and the text the player **actually sees**, so the table separates what the model does from what the system lets through:
+
+| Target | Attacks | Attack succeeds, raw model | Attack succeeds, player sees |
+|---|---|---|---|
+| Culprits | 72 | 17 (24%) | **0** |
+| Innocents | 24 | 7 (29%) | **0** |
+| By category: prompt extraction | 16 | 11 (69%) | 0 |
+| By category: role-play | 8 | 4 (50%) | 0 |
+| By category: cost abuse | 4 | 4 (100%) | 0 |
+
+Most raw failures are the model dropping character to answer like a chatbot ("Sorry, I can't help with that"). The output guards in [`agents.guard_answer`](backend/app/agents.py) catch them along with echoed instructions, confessions (PT/EN, negation- and reported-speech-aware) and a culprit naming himself in the third person. A length cap stops quota-burning answers. The first red-team run had 2 failures that reached the player. Both turned out to be detector false positives (a suspect repeating the word "AI" from the question, and a public detail matched as a secret), and the run also exposed one guard false positive ("to suggest *I am the killer* is madness" read as a confession). All three are fixed and covered by tests.
+
+The checks are deterministic (regex plus word overlap with the hidden facts). That makes them cheap and repeatable, but they are a lower bound: a cleverly paraphrased leak could still get past them.
 
 ## Architecture
 
@@ -100,7 +119,8 @@ Most of the interesting work came from making this fast and reliable without pay
 |---|---|
 | Groq free tier: ~8k tokens/min per model | On a 429, switches to the next model (gpt-oss-120b → Qwen 3.8 → gpt-oss-20b), each with its own quota, before falling back to Gemini or a rule-based offline mode |
 | Gemini TTS: 10 calls/day | One multi-speaker call per intro, split per line with Whisper word timestamps; library intros are pre-rendered MP3; Kokoro covers the rest |
-| Free API host has 512 MB and sleeps | The voice model runs on a separate scale-to-zero service; a scheduled GitHub Actions ping (every 10 min) keeps the API awake, and the site also wakes it on load |
+| Anyone can burn the free quota | Per-IP rate limits plus a global daily budget per action (AI case generation, questions, transcription); answers are capped in tokens and characters; leaving mid-answer cancels the paid voice synthesis |
+| Free API host has 512 MB and sleeps | The voice model runs on a separate scale-to-zero service; the site wakes the API on load while the player browses the archive |
 | Voice budget is $1/month | Max one container, 5 min idle shutdown, shared-key auth. If the voice service fails, answers continue as text only |
 | CPU speech synthesis is slow | Answers are chunked with growing sizes (28 → 42 → 75 → 110 chars) so the first sentence is ready in ~1.5 s and each next chunk renders while the previous one plays |
 | Whisper guesses the wrong language on short clips | The player picks PT/EN; forcing the wrong language would silently translate the question |
@@ -130,9 +150,10 @@ For local suspect voices, download `kokoro-v1.0.onnx` and `voices-v1.0.bin` from
 cd backend && python -m pytest -q
 cd .. && python backend/scripts/evals.py   # suspect evals, needs GROQ_API_KEY
 python backend/scripts/evals.py --culpados 3   # culprits only, 3 runs each
+python backend/scripts/redteam.py              # 96 attacks, ~5 min
 ```
 
-54 tests cover case validation, truth leakage, prompt isolation between suspects, question limits, streaming, model fallback on rate limits, voice-service failure, transcription input checks, the confession, refusal and truth-leak guards, stream sanitizing, the eval checks and the accusation flow.
+67 tests, run by CI on every push, cover rate limits, answer caps, case validation, truth leakage, prompt isolation between suspects, question limits, streaming, model fallback on rate limits, voice-service failure, transcription input checks, the confession, refusal and truth-leak guards, stream sanitizing, the eval checks and the accusation flow.
 
 ## Deploy
 
@@ -143,6 +164,10 @@ python backend/scripts/evals.py --culpados 3   # culprits only, 3 runs each
 | Case archive | Built offline | `python backend/scripts/build_library.py --novos 5` |
 
 API keys live only in the hosting dashboards, never in the repository.
+
+## License
+
+Code under the [MIT License](LICENSE). Third-party assets keep their own licenses (below).
 
 ## Credits
 
@@ -157,4 +182,5 @@ API keys live only in the hosting dashboards, never in the repository.
 - [x] Voice questions (push-to-talk, PT/EN)
 - [x] Case archive and free-tier deploy
 - [x] Automated evals for suspect consistency and case solvability
+- [x] Red-team suite, abuse limits and CI
 - [ ] More cases and clothing with real volume
